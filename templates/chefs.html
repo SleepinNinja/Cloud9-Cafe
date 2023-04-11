@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+Our Chefs
+{% endblock title %}
+
+{% block content %}
+<!-- Team Section -->
+<div id="team">
+  <div class="container">
+    <div id="row">
+      <div class="col-md-6">
+        <div class="col-md-10 col-md-offset-1">
+           {% for txt in text %}
+          <div class="section-title">
+            <h2>{{ txt.section }}</h2>
+          </div>
+          <p>{{ txt.content }}</p>
+        </div>
+         {% endfor %}
+      </div>
+      <div class="col-md-6">
+         {% for chef_image in chefs_images %}
+        <div class="team-img">
+           <img src="{{ chef_image.image.url }}" alt="..."></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock content %}

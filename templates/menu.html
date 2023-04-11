@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+Menu
+{% endblock title %}
+
+{% block head %}
+<link rel="icon" href="{% static 'img/icons8-restaurant-menu-48.png' %}">
+<style media="screen">
+
+   .caviar-dish-menu {
+      padding-bottom: 200px;
+      position: relative;
+      z-index: 1;
+      overflow-x: hidden;
+   }
+
+   h2 {
+      font-size: 5em;
+      font-weight: 700;
+   }
+
+   .caviar-dish-menu:before {
+      position: absolute;
+      font-size: 150px;
+      right: -10%;
+      margin: 0;
+      line-height: 1;
+      top: 35%;
+      -webkit-transform: rotate(-90deg);
+      transform: rotate(-90deg);
+      color: rgba(0, 0, 0, 0.05);
+      font-weight: 700;
+   }
+
+   .caviar-single-dish {
+      padding: 50px 50px 30px 50px;
+      position: relative;
+      z-index: 1;
+      -webkit-transition-duration: 500ms;
+      transition-duration: 500ms;
+      margin-bottom: 5em;
+      margin-left: 1.7em;
+
+   }
+
+   .caviar-single-dish:hover .dish-info .dish-name {
+      color: rgb(0, , 255, 255);
+   }
+
+   .caviar-single-dish:hover .dish-price {
+      background-color:;
+   }
+
+   .caviar-single-dish:after {
+      position: absolute;
+      width: calc(100% - 80px);
+      height: 100%;
+      background-color: #fff;
+      content: '';
+      top: 0;
+      left: 0;
+      z-index: -1;
+      border-radius: 3px;
+      box-shadow: 0 10px 15px rgba(0,0,0, 0.45);
+      background: url({{ section2.image.url }}) white;
+      background-size: cover;
+   }
+
+   .caviar-dish-menu .row .col-12:first-child .caviar-single-dish:before {
+      position: absolute;
+      height: 100%;
+      width: calc(100% - 50px);
+      content: '';
+      top: -50px;
+      left: -50px;
+      z-index: -1;
+      background-repeat: no-repeat;
+   }
+
+   .dish-info {
+      display: -webkit-box;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-box-align: center;
+      -ms-flex-align: center;
+      align-items: center;
+      -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+      justify-content: space-between;
+      height: 100px;
+      color: ;
+   }
+
+   .dish-info .dish-name {
+      -webkit-box-flex: 0;
+      -ms-flex: 0 0 50%;
+      flex: 0 0 50%;
+      width: 50%;
+      margin-bottom: 0;
+      line-height: 1.5;
+      font-size: 2.2em;
+      -webkit-transition-duration: 500ms;
+      transition-duration: 500ms;
+      text-transform: capitalize;
+      color: black #17a2b8;
+   }
+
+   .dish-price {
+      width: 60px;
+      height: 60px;
+      font-size: 25px;
+      background-color: #17a2b8;
+      border-radius: 50%;
+      display: inline-block;
+      margin-bottom: 0;
+      text-align: center;
+      color: #fff;
+      line-height: 60px;
+      font-weight: 700;
+      -webkit-transition-duration: 500ms;
+      transition-duration: 500ms;
+   }
+
+   .dish-name {
+      font-weight: 700;
+      font-size: 17px;
+      color: black;
+   }
+
+   .dish-image {
+      border-radius: 50%;
+      height: 225px;
+      width: 225px;
+      position: relative;
+      bottom: 25px;
+   }
+   }
+</style>
+{% endblock head %}
+
+{% block content %}
+
+<section id="features">
+   <div class="container mt-5">
+      <div class="row text-center feature-item">
+         <div class="col-lg-6 wow fadeInUp">
+            <img src="{{ section1.image.url }}" class="img-fluid mb-md-5 mt-lg-5" alt="" style="">
+         </div>
+         <div class="col-lg-6 wow fadeInUp pt-5 pt-lg-0">
+            <span>
+               <h2 class='text-center'>{{ section1_text.0 }}</h2>
+            </span>
+            {% for txt in section1_text.1 %}
+            <p>{{ txt }}</p>
+            {% endfor %}
+         </div>
+      </div>
+   </div>
+</section>
+
+
+<section id="team" class="section-bg">
+   <div class="container">
+      <div class="section-header">
+         <h3>{{ section2_text.0 }}</h3>
+         {% for txt in section2_text.1 %}
+         <p>{{ txt }}</p>
+         {% endfor %}
+      </div>
+
+      <div class="row">
+         {% for type in types %}
+         <div class="col-12 col-sm-6 col-md-6 col-lg-4">
+            <div class="caviar-single-dish wow fadeInUp" data-wow-delay="0.5s">
+               <img class="dish-image" src="{{ type.image.url }}" alt="">
+               <div class="dish-info">
+                  <h6 class="dish-name">{{ type.name }}</h6><br>
+                  <a href="{% url 'menu_display' type.name %}">
+                     <p class="dish-price"><i class="ion ion-arrow-right-c large"></i></p>
+                  </a>
+               </div>
+            </div>
+         </div>
+
+         {% endfor %}
+
+      </div>
+
+   </div>
+</section>
+
+<script type="text/javascript">
+   $('#features').ready(function(){
+      console.log('this is menu');
+   });
+
+</script>
+
+
+<!--We also have photos that can be displayed will think about it later-->
+
+{% endblock content %}

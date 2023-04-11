@@ -1,0 +1,369 @@
+{% load static %}
+
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link rel="icon" href="{% static 'img/icons8-info-48.png' %}">
+   <link href="https://fonts.googleapis.com/css2?family=Mansalva&family=Caveat&family=La+Belle+Aurore&family=Sarina&amily=Chewy&family=Nanum+Pen+Script&family=Oooh+Baby&family=Sacramento&display=swap" rel="stylesheet">
+    <title>Change Info</title>
+
+    <style media="screen">
+      p {
+         font-weight: 600;
+         margin-top: 2%;
+         margin-bottom: 0;
+      }
+
+      body {
+         background: white;
+         font-size: 0.8em;
+      }
+
+      .profile-image {
+         broder-radius: 50%;
+         height: 300px;
+         width: 300px;
+         margin-bottom: 20px;
+      }
+
+      small{
+         color: red;
+         font-size: 1.7em;
+      }
+
+      h2 {
+         color: black;
+         font-weight: 700;
+      }
+
+      @media(min-width: 1080px){
+         input{
+            max-width: 70% !important;
+         }
+      }
+
+      p {
+         font-size: 2.2em;
+         color: #17a2b8;
+      }
+
+      form {
+         box-shadow: 0 0px 30px 0 rgba(27,177,220, 0.85);
+      }
+
+      @media only screen and (max-width: 768px){
+         .profile-image {
+            height: 250px;
+            width: 250px;
+         }
+
+         #profile-form {
+            width: 80vw !important;
+            margin: 0 auto 0 auto;
+         }
+      }
+
+   </style>
+  </head>
+
+<body style="height: 100vh;">
+  <div class="wrapper fadeInDown" style="">
+        <!-- Tabs Titles -->
+
+        <!-- Login Form -->
+        <form id="profile-form" class="text-center container rounded-top w-auto" method="POST" enctype="multipart/form-data">
+           {% csrf_token %}
+           <div class="">
+              <div class="row">
+                 <div class="col-sm-12 col-md-6 col-lg-6">
+                    <br><p class="mb-3" for="">Profile Photo</p>
+
+                    <img id="profile-image" src="{{ profile_image.url }}" class='profile-image rounded-circle mb-5' alt=""><br>
+                    <input type="file" id="profile-photo" name="profile_photo" onchange="readUrl(this);" accept="image/*">
+                 </div>
+
+                 <div class="col-sm-12 col-md-6 col-lg-6">
+                    <br><p for="">Username</p>
+                    <input class="" type="text" id="username" class="fadeIn second" value="{{user.username}}" name="username" placeholder="Enter Username">
+                    <br><small id="usrnme"></small>
+                    <p for="">Name</p>
+                    <input class="" type="text" id="name" class="fadeIn second" value="{{user.first_name}}" name="name" placeholder="Enter Name">
+                    <br><small id="nme"></small>
+                    <p for="">Email</p>
+                    <input class="" type="text" id="email" class="fadeIn second" value="{{user.email}}" name="email" placeholder="Enter Email">
+                    <br><small id="mail"></small><br>
+                 </div>
+
+                 <div class="mx-auto px-0">
+                     <button id="profile-update" type="submit" class="btn btn-info btn-lg my-3" style="font-size: 1.5em">Submit Changes</button>
+                 </div>
+              </div>
+           </div>
+        </form>
+     </div>
+
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+  <script type="text/javascript">
+     $(document).ready(function() {
+        console.log('Document is ready');
+        var default_username = $('#username').val();
+        console.log(default_username);
+
+        $('#username').focus(function() {
+           $('#usrnme').text('');
+        });
+
+        $('#name').focus(function() {
+           $('#nme').text('');
+        });
+
+        $('#email').focus(function() {
+           $('#mail').text('');
+        });
+
+        function empty_check(selector) {
+           var fields = {
+              'username': 'usrnme',
+              'email': 'mail',
+              'name': 'nme'
+           }
+
+           var value = $('#' + selector).val();
+
+           if (value.length == 0) {
+              $('#' + fields[selector]).text(selector + ' ' + 'cannot be empty');
+              return false;
+           }
+
+           return true;
+        }
+
+        function validity_check(selector) {
+           var fields = {
+              'username': 'usrnme',
+              'email': 'mail',
+              'name': 'nme'
+           }
+
+           var value = $('#' + selector).val();
+            console.log('validity value :', value);
+
+
+           if (selector == 'username') {
+
+              if(value.length > 20){
+                 $('#' + fields[selector]).text('Username too long!');
+                 return false;
+              }
+
+              else {
+                 var is_valid = {};
+
+                 $.ajax({
+                    type: 'POST',
+                    url: "{% url 'username_available' %}",
+                    data: {
+                       username: value,
+                       csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+                    },
+
+                    success: function(response) {
+                       console.log('response username :', response == 'True');
+                       if (response == 'True') {
+                          console.log('valid')
+                          is_valid = true;
+                       }
+
+                       else {
+                          //console.log(value, typeof({{ user.username }}), {{ user.username }});
+                          $('#' + fields[selector]).text('Username not available');
+                          is_valid = false;
+                       }
+                    }
+                 });
+                  console.log('is_valid', is_valid);
+                 return is_valid
+              }
+           }
+
+           else if (selector == 'email') {
+              email_regex = /[a-z0-9.]{5,}@[a-z]{3,}[.]{1}[a-z]{2,}/;
+              console.log(value, email_regex.test(value), fields ,fields[selector], selector);
+
+              if (email_regex.test(value)) {
+                 return true;
+              }
+              else {
+                 $('#' + fields[selector]).text('Not a valid email address');
+                 return false;
+              }
+           }
+
+           else if (selector == 'name'){
+              name_regex = /^[A-Za-z\s]+$/;
+              console.log('name: ' + value, name_regex.test(value));
+
+              if(name_regex.test(value)){
+                 return true;
+              }
+
+              else if(value.length > 30){
+                 $('#' + fields[selector]).text('Name too long, 30 characters allowed');
+                 return false;
+              }
+
+              else {
+                 $('#' + fields[selector]).text('Not a valid name, only characters allowed');
+                 return false;
+              }
+           }
+        }
+
+        $('#profile-form').submit(function(event) {
+           event.preventDefault();
+           console.log("submit");
+
+           $('#profile-form').keypress(function(event){
+              var keyPressed = event.keyCode || event.which;
+              if (keyPressed === 13) {
+                 event.preventDefault();
+                 return false;
+              }
+
+           });
+
+           var is_valid = [];
+           var fieldss = ['name', 'email', 'username',];
+           var submit_username = $('#username').val();
+           console.log('submit_username ', submit_username, default_username);
+
+           console.log($('#profile-photo').prop('files'));
+
+           console.log(fieldss.toString());
+
+           fieldss.forEach(function(field){
+              if(empty_check(field)){
+                 console.log('empty of func', field);
+                 if(validity_check(field)){
+                    console.log('valid of func', field);
+                    is_valid.push(field);
+                 }
+              }
+           });
+
+           console.log(is_valid.toString(), is_valid.length);
+
+           if(is_valid.length == 3){
+
+               var fd = new FormData(this);
+               var files = $('#profile-photo').prop('files')[0];
+
+               // Check file selected or not
+               fd['profile_photo'] = files;
+
+               console.log(fd, files)
+
+               $.ajax({
+                  type: 'POST',
+                  url: "{% url 'change_info' user.username %}",
+                  data: fd,
+                  processData: false,
+                  contentType: false,
+
+                  success: function(response){
+                     $('#profile-update').removeAttr('disabled');
+
+                     console.log('Profile photo updated successfully');
+
+                     if(response == 'True'){
+                       var $success = $(
+                       `<div class="alert mx-auto text-center mt-5 col-8 alert-success text-left alert-dismissible fade show" role="alert">
+                          <p><strong style="color: black;">Profile Updated Successfully!</strong></p>
+                            <button type="button" class="close" data-dismiss="alert" aria-p="Close">
+                              <span aria-hidden="true">&times;</span>
+                            </button>
+                       </div>`
+                       );
+
+                       $('#profile-form').prepend($success);
+                       window.location.replace("{% url 'user_profile' user.username %}");
+                    }
+                  },
+
+                  error: function(error){
+                     alert("An error occured while updating image: " + error);
+                  }
+
+               });
+               //console.log(url);
+               /*
+              $.ajax({
+                 type: 'POST',
+                 url: "{% url 'change_info' user.username %}",
+                 data: {
+                    username: $('#username').val(),
+                    enctype: 'multipart/form-data',
+                    name: $('#name').val(),
+                    //profile_photo: fd,
+                    email: $('#email').val(),
+                    csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+                 },
+
+                 success: function(response){
+                    console.log(response)
+                    if(response == 'True'){
+                       var $success = $(
+                       `<div class="alert m-4 alert-success text-left alert-dismissible fade show" role="alert">
+                          <strong>Profile Updated Successfully!</strong>
+                            <button type="button" class="close" data-dismiss="alert" aria-p="Close">
+                              <span aria-hidden="true">&times;</span>
+                            </button>
+                       </div>`
+                       );
+
+                       $('#profile-form').prepend($success);
+                    }
+                 },
+
+                 error: function(error){
+                    console.log('An error occured while changing info ' + error);
+                 },
+
+              });*/
+
+           }
+        });
+     });
+
+     function readUrl(input) {
+        console.log('file seletected', input, input.files);
+        if (input.files && input.files[0]) {
+           var reader = new FileReader();
+
+           reader.onload = function(e) {
+              $('#profile-image').attr('src', e.target.result);
+              console.log(e);
+           };
+
+           reader.readAsDataURL(input.files[0]);
+        }
+     }
+  </script>
+
+  </body>
+</html>
+<!------ Include the above in your HEAD tag ---------->

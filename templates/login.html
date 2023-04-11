@@ -1,0 +1,132 @@
+{% load static %}
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mansalva&family=Caveat&family=La+Belle+Aurore&family=Sarina&amily=Chewy&family=Nanum+Pen+Script&family=Oooh+Baby&family=Sacramento&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="icon" href="{% static 'img/icons8-login-50.png' %}">
+    <title>Login</title>
+
+    <style media="screen">
+      @media only screen and (max-width: 600px) {
+    body {
+      height: 100vh;
+    }
+   }
+    </style>
+  </head>
+  <body style="height: 100vh;">
+     <div class="d-flex align-items-center justify-content-center h-100 w-100">
+        <div class="wrapper fadeInDown">
+        <div id="formContent">
+          <!-- Tabs Titles -->
+
+          <!-- Icon -->
+          <div class="fadeIn first">
+            <img src="{{ image.image.url }}" class="" id="icon" alt="User Icon" />
+          </div>
+
+          <!-- Login Form -->
+          <form id="login-form" method="POST" action="">
+            {% csrf_token %}
+            <input type="text" id="username" class="fadeIn second" name="username" placeholder="Enter Username">
+            <small id="usrnme"></small>
+            <input type="text" id="password" class="fadeIn third" name="password" placeholder="Enter Password">
+            <button type="submit" class="fadeIn fourth btn btn-info mx-auto btn-lg btn-block my-4 w-50" value="Log In">Login</button>
+            <small id="pswd"></small>
+          </form>
+
+          <!-- Remind Passowrd -->
+          <div id="formFooter">
+            <a class="underlineHover" href="{% url 'forgot_password' %}"><p class="my-0">Forgot Password?</p></a><br><br>
+            <h5 class='font-weight-bold' style="font-size: 1.6em;">Not Registered?</h5>
+            <a class='underlineHover' href="{% url 'register' %}"><p class="my-0">Sign Up!</p></a>
+          </div>
+
+        </div>
+      </div>
+     </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+    <script type="text/javascript">
+      $('#login-form').submit(function(event){
+         event.preventDefault();
+
+         var all_visited = [];
+
+         var username = $('#username').val();
+         var password = $('#password').val();
+
+
+         if(username.length == 0){
+            $('#usrnme').text('Please enter username');
+         }
+
+         else if(password.length == 0){
+            $('#pswd').text("Please enter password");
+         }
+
+         else {
+            $.ajax({
+               type: 'POST',
+               url: "{% url 'login' %}",
+               data: {
+                  username: $('#username').val(),
+                  password: $('#password').val(),
+                  csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+               },
+
+               success: function(response) {
+                  if(response == 'False'){
+
+                     var $error = $(
+                     `<div class="alert mx-auto text-center mt-5 col-10 py-0 alert-danger text-left alert-dismissible fade show" role="alert">
+                       <p><strong style="color: black;">Invalid login credentials!</strong></p>
+                          <button type="button" class="close" data-dismiss="alert" aria-p="Close">
+                           <span aria-hidden="true">&times;</span>
+                          </button>
+                     </div>`
+                     );
+
+                     $("#formContent").prepend($error);
+                  }
+
+                  else if(response == 'True') {
+                     window.location.replace("{% url 'home' %}")
+                  }
+               },
+
+               error: function(error){
+                  alert('an error occured while logging in: ', error);
+               },
+            });
+         }
+      });
+
+    </script>
+  </body>
+</html>
+
+
+
+
+
+<!------ Include the above in your HEAD tag ---------->

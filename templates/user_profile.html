@@ -1,0 +1,208 @@
+{% extends 'base.html'%}
+{% load static %}
+
+{% block title %}
+
+User Profile
+
+{% endblock title %}
+
+
+{% block head %}
+<link rel="icon" href="{% static 'img/icons8-user-100.png' %}">
+
+<style>
+   .profile-image {
+      broder-radius: 50%;
+      height: 300px;
+      width: 300px;
+      margin-bottom: 20px;
+   }
+
+   .review {
+      padding-top: 7em;
+      margin-bottom: 7%;
+   }
+
+   @media only screen and (max-width: 768px){
+      .profile-image {
+         height: 250px;
+         width: 250px;
+      }
+
+      .card {
+         width: 80vw;
+         margin: 0 auto 0 auto;
+      }
+   }
+
+</style>
+
+{% endblock head %}
+
+{% block content %}
+
+<section class="vh-50" style="margin:5% 0 0 0; ">
+   <div class="container py-5 h-100">
+      <div class="row d-flex justify-content-center align-items-center h-100">
+         <div class="col-md-12 col-lg-8 col-xl-8 mt-5 mt-lg-0">
+
+            <div class="card" style="border-radius: 15px; box-shadow: 0 0px 30px 0px rgba(27,177,220, 0.85);">
+               <div class="card-body text-center">
+                  <div class="mt-3 mb-4">
+                     <img src="{{ profile_photo.url }}" class="rounded-circle profile-image" />
+                  </div>
+                  <h4 style="font-size: 3em; font-weight: 700; text-transform: capitalize;" class="mb-2">{{name}}</h4>
+                  <p class="text-muted mb-5">@{{username}} <span class="mx-2 mb-5">|</span> <a href="#!">{{email}}</a></p>
+
+                  <div class="text-center">
+                     <a href="{% url 'change_info' username %}"><button type="button" class="btn btn-info btn-rounded btn-lg mt-2 mx-auto">
+                           Edit Profile
+                        </button></a>
+
+                        <a href="{% url 'forgot_password' %}"><button type="button" class="btn btn-info btn-rounded btn-lg mt-2 mx-auto">
+                              Change Password
+                           </button></a>
+                     <a href="{% url 'logout' %}"><button type="button" class="btn btn-info btn-rounded btn-lg mt-2 mx-auto">
+                           Logout
+                        </button></a>
+                  </div>
+
+
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+</section>
+
+<footer id="footer" class="section-bg">
+   <div class="footer-top" style="background: none;">
+      <div class="container user-review">
+      <div class="row feature-item">
+         <div class="col-lg-6 col-md-8 wow fadeInUp mx-auto px-auto mb-lg-5 text-center">
+         <img src="{{ image.image.url }}" class="img-fluid" alt="">
+         </div>
+
+         <div class="col-lg-6 wow fadeInUp text-center">
+
+            <div class="form mt-5 pb-3">
+
+               <h3 style="font-size: 4em; font-weight: 700" id="big" class="text-info">{{ section21.0 }}</h3>
+               {% for txt in section21.1 %}
+               <p>{{ txt }}</p>
+               {% endfor %}
+               <form id="" method="post" role="form" class="contactForm">
+                  {% csrf_token %}
+                  <div class="form-group">
+                     <textarea class="form-control" id="review" name="message" rows="5" data-rule="required" data-msg="Please write something for us" placeholder="Message"></textarea>
+                     <div class="validation"></div>
+                  </div>
+                  <div id='submit-review' class="text-center mt-5"><button type="submit" style="font-size: 1.4em" class="btn btn-info btn-lg" title="Send Message">Submit</button></div>
+               </form>
+            </div>
+            </div>
+      </div>
+   </div>
+   <div>
+
+   <div aria-live="polite" aria-atomic="true" style="position: sticky; top:0; z-index: 1">
+        <!-- Position it -->
+      <div id="toast-box" style="position: absolute; bottom: 30px; right: 1%;">
+
+          <!-- Then put toasts within -->
+      </div>
+   </div>
+</footer>
+
+<script type="text/javascript">
+   $(document).ready(function(){
+      $('.contactForm').trigger('reset');
+   });
+
+   $('.contactForm').submit(function(event){
+      event.preventDefault();
+      $('#submit-review').attr('disabled', true);
+
+      $('.contactForm').keypress(function(event){
+         var keyPressed = event.keyCode || event.which;
+         if (keyPressed === 13) {
+            event.preventDefault();
+            return false;
+         }
+      });
+
+      var review_message = $('#review').val();
+
+      if(review_message.length == 0){
+         var $message_error = $(
+         `
+         <div class="toast bg-danger rounded" role="alert" data-autohide="true" aria-live="assertive" aria-atomic="true" data-delay='300000'>
+           <div class="toast-header my-0">
+             <img src="{% static 'img/warning.png' %}" class="rounded mr-2" alt="..." style='height: 40px; width: 40px;'>
+             <h4 class="my-auto pb-0" style="font-size: 1.8em; text-transform: capitalize;"><strong class="mr-auto">Empty review</strong></h4>
+             <small class="text-muted ml-5 mr-2"></small>
+             <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+               <span aria-hidden="true">&times;</span>
+             </button>
+           </div>
+           <div class="toast-body">
+             <p class="my-0">Please enter a review!</p>
+           </div>
+         </div>
+         `
+         );
+
+         $('#toast-box').append($message_error);
+         $message_error.toast('show')
+      }
+
+      else{
+         $.ajax({
+            type: 'POST',
+            url: "{% url 'submit_review' %}",
+            data: {
+               review: review_message,
+               csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+            },
+
+            success: function(response){
+               $('#submit-review').removeAttr('disabled');
+
+               var $review_section = $('.container.user-review').html();
+
+               var $success_message = $(
+               `
+               <div id="message-sent" class="container">
+                  <div class="row">
+                     <div class="col-lg-6 col-sm-12 col-md-12 text-center m-auto">
+                           <h3 style="font-size: 4em; font-weight: 700;" class="mb-4 text-info text-center">{{ section22.0 }}</h3>
+                           {% for txt in section22.1 %}
+                           <p style="font-size: 1.8em;">{{ txt }}</p>
+                           {% endfor %}
+                     </div>
+                     <div class="col-lg-6 col-sm-12 col-md-12 text-center">
+                        <img src="{{ image_section2.image.url }}" alt=""
+                        style="height: 400px; width: 650px;">
+                     </div>
+                  </div>
+               </div>
+               `
+               );
+
+               $('.row.feature-item').replaceWith($success_message);
+
+               setTimeout(function(){
+                  $('#message-sent').replaceWith($review_section);
+               }, 10000);
+            },
+
+            error: function(error){
+               console.log('An error occured while submitting review: ' + error);
+            }
+         });
+      }
+   });
+</script>
+
+{% endblock content %}

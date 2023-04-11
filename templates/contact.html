@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+
+{% block title %}
+Contact Us
+{% endblock title %}
+
+{% block head %}
+
+<style media="screen">
+   pre {
+      font-size: 1.6em;
+      font-weight: 500;
+      margin-bottom: 10%;
+   }
+
+   h3 {
+      font-size: 4em;
+      text-align: center;
+      position: relative;
+      font-weight: 700;
+   }
+</style>
+
+<link rel="icon" href="{% static 'img/icons8-contact-58.png' %}">
+
+{% endblock head %}
+
+{% block content %}
+<section id="features">
+   <div class="container mt-5">
+      <div class="row feature-item">
+         <div class="col-lg-6 wow fadeInUp">
+            <img src="{{ image.image.url }}" class="img-fluid" alt="">
+         </div>
+         <div class="col-lg-6 wow fadeInUp pt-5 pt-lg-0 text-center">
+
+            <h3 class="text-info">Contact Number</h3>
+            <p>754-3010, 954-3600</p>
+            <h3 class="text-info">Address</h3>
+            <p>
+         Street: Corniche El-Nile, Tower A, <br>
+         Entrance B Town: Shoubra, <br>
+         City: Yukrig Pasas
+           </p>
+            <h3 class="text-info">Opening Hours</h3>
+            <p>
+         Weekdays: 8am - 10pm <br>
+         Weekends: 8am -12pm
+         </p>
+         </div>
+      </div>
+   </div>
+</section>
+
+<footer id="footer" class="section-bg">
+   <div class="footer-top" style="background: none;">
+      <div class="container col-lg-6 col-md-10 col-sm-12">
+
+         <div class="form">
+
+            <h3 class='text-info' id="big">{{ section21.0 }}</h3>
+            {% for txt in section21.1 %}
+            <p>{{ txt }}</p>
+            {% endfor %}
+            <form action="" method="POST" role="form" class="contactForm">
+               {% csrf_token %}
+               {% if not user.is_authenticated %}
+               <div class="form-group">
+                  <input type="text" class="form-control" name="sender-mail" id="sender-mail" placeholder="Your mail Id" data-rule="minlen:4" data-msg="Please enter at least 8 chars of subject" />
+                  <div class="validation"></div>
+               </div>
+               {% endif %}
+               <div class="form-group">
+                  <input type="text" class="form-control" name="subject" id="subject" placeholder="Subject" data-rule="minlen:4" data-msg="Please enter at least 8 chars of subject" />
+                  <div class="validation"></div>
+               </div>
+               <div class="form-group">
+                  <textarea class="form-control" id="message" name="message" rows="5" data-rule="required" data-msg="Please write something for us" placeholder="Enter you message for us."></textarea>
+                  <div class="validation"></div>
+               </div>
+
+               <div class="text-center"><button id='send-button' type="submit" title="Send Message" class="btn btn-info btn-lg">Send Message</button></div>
+            </form>
+         </div>
+
+      </div>
+   </div>
+
+   <div aria-live="polite" aria-atomic="true" style="position: sticky; top:0; z-index: 1">
+     <!-- Position it -->
+     <div id="toast-box" style="position: absolute; bottom: 30px; right: 1%;">
+
+       <!-- Then put toasts within -->
+     </div>
+   </div>
+</footer>
+
+<script type="text/javascript">
+   $(document).ready(function(){
+      $('.contactForm').trigger('reset');
+   });
+
+   $('.contactForm').submit(function(event){
+      event.preventDefault();
+
+      $('.contactForm').keypress(function(event){
+         var keyPressed = event.keyCode || event.which;
+         if (keyPressed === 13) {
+            event.preventDefault();
+            return false;
+         }
+      });
+
+      var subject = $('#subject').val();
+      var message = $('#message').val();
+      var sender_mail = $('#sender-mail').val();
+
+      console.log(subject, message, sender_mail);
+
+      var fd = new FormData(this);
+      fd['sender_mail'] = sender_mail;
+      fd['subject'] = subject;
+      fd['message'] = message;
+      console.log(fd);
+
+
+      console.log(sender_mail == undefined)
+
+      if (sender_mail != undefined && sender_mail.length == 0){
+         var $message_error = $(
+            `
+            <div class="toast bg-danger rounded" role="alert" data-autohide="true" aria-live="assertive" aria-atomic="true" data-delay='3000'>
+              <div class="toast-header">
+                 <img src="{% static 'img/warning.png' %}" class="rounded mr-3" alt="..." style="height: 30px; width: 30px;">
+                <p class="my-0"><strong class="mr-auto">Empty mail Id</strong></p>
+                <small class="text-muted ml-5 mr-2"></small>
+                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="toast-body">
+               <p class="my-0"> Please enter your mail Id! </p>
+              </div>
+            </div>
+            `
+            );
+
+            $('#toast-box').append($message_error);
+            $message_error.toast('show');
+      }
+
+      else if (sender_mail != undefined && /[a-z.0-9]{3,}@[a-z]{3,}.[a-z]{3,}/.test(sender_mail) == false) {
+         var $message_error = $(
+         `
+         <div class="toast bg-danger rounded" role="alert" data-autohide="true" aria-live="assertive" aria-atomic="true" data-delay='3000'>
+           <div class="toast-header">
+              <img src="{% static 'img/warning.png' %}" class="rounded mr-3" alt="..." style="height: 30px; width: 30px;">
+             <p class="mr-auto text-capitalize font-weight-bold my-0" style="font-size: em;">Invalid Email</p>
+             <small class="text-muted ml-5 mr-2"></small>
+             <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+               <span aria-hidden="true">&times;</span>
+             </button>
+           </div>
+           <div class="toast-body">
+            <p class="my-0"> Please enter a valid email address!</p>
+           </div>
+         </div>
+         `
+         );
+
+         $('#toast-box').append($message_error);
+         $message_error.toast('show');
+      }
+
+      else if (subject.length == 0 || subject == undefined){
+         console.log('empty subject');
+
+         var $subject_error = $(
+         `
+         <div class="toast bg-danger rounded" role="alert" data-autohide="true" aria-live="assertive" aria-atomic="true" data-delay='3000'>
+           <div class="toast-header">
+             <img src="{% static 'img/warning.png' %}" class="rounded mr-3" alt="..." style="height: 30px; width: 30px;">
+             <p class="mr-auto text-capitalize font-weight-bold my-0" style="font-size: em;">Empty Subject</p>
+             <small class="text-muted ml-5 mr-2"></small>
+             <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+               <span aria-hidden="true">&times;</span>
+             </button>
+           </div>
+           <div class="toast-body">
+            <p class="my-0"> Please enter subject for mail!</p>
+           </div>
+         </div>
+         `
+         );
+
+         $('#toast-box').append($subject_error);
+         $subject_error.toast('show');
+      }
+
+      else if (message.length == 0 || message == undefined){
+         var $message_error = $(
+         `
+         <div class="toast bg-danger rounded" role="alert" data-autohide="true" aria-live="assertive" aria-atomic="true" data-delay='3000'>
+           <div class="toast-header">
+              <img src="{% static 'img/warning.png' %}" class="rounded mr-3" alt="..." style="height: 30px; width: 30px;">
+             <p class="mr-auto text-capitalize font-weight-bold my-0" style="font-size: em;">Empty Message</p>
+             <small class="text-muted ml-5 mr-2"></small>
+             <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+               <span aria-hidden="true">&times;</span>
+             </button>
+           </div>
+           <div class="toast-body">
+            <p class="my-0"> Please enter mail body!</p>
+           </div>
+         </div>
+         `
+         );
+
+         $('#toast-box').append($message_error);
+         $message_error.toast('show');
+      }
+
+      else {
+         $('#send-button').attr('disabled', true);
+
+         $.ajax({
+            type: 'POST',
+            url: "{% url 'contact' %}",
+            data: fd,
+            processData: false,
+            contentType: false,
+
+            success: function(response){
+               console.log(response);
+               $('#send-button').removeAttr('disabled');
+               var $form = $('.footer-top').html()
+
+               var $success_message = $(
+               `
+               <div id="message-sent" class="container">
+                  <div class="row">
+                     <div class="col-lg-6 col-sm-12 col-md-6 text-center m-auto">
+                           <h3 class="mb-4 text-center">{{ section22.0 }}</h3>
+                           {% for txt in section22.1 %}
+                           <p style="font-size: 1.8em;">{{ txt }}</p>
+                           {% endfor %}
+                     </div>
+                     <div class="col-lg-6 col-sm-12 col-md-6 text-center">
+                        <img src="{{ section2.image.url }}" alt=""
+                        style="height: 450px; width: 450px;">
+                     </div>
+                  </div>
+               </div>
+               `
+               );
+
+               $('.container.col-lg-6.col-sm-12').replaceWith($success_message);
+
+               setTimeout(function(){
+                  $('#message-sent').replaceWith($form);
+                  window.location.reload();
+               }, 10000);
+            }
+         });
+      }
+   });
+
+</script>
+
+
+{% endblock content %}

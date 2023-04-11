@@ -1,0 +1,208 @@
+{% load static %}
+
+<!doctype html>
+<html lang="en">
+
+<head>
+   <!-- Required meta tags -->
+   <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+   <meta content="width=device-width, initial-scale=1.0" name="viewport">
+   <meta content="" name="keywords">
+   <meta content="" name="description">
+
+
+   <!-- Bootstrap CSS -->
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+   <title>{% block title %} {% endblock title %}</title>
+
+   <!-- Favicons -->
+   <link href="{ static 'img/favicon.png' %}" rel="icon">
+   <link href="{ static 'img/apple-touch-icon.png' %}" rel="apple-touch-icon">
+
+   <!-- Google Fonts -->
+   <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,500,600,700,700i|Montserrat:300,400,500,600,700" rel="stylesheet">
+
+   <!-- Bootstrap CSS File -->
+   <link href="{% static 'lib/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+
+   <!-- Libraries CSS Files -->
+   <link href="{% static 'lib/font-awesome/css/font-awesome.min.css' %}" rel="stylesheet">
+   <link href="{% static 'lib/animate/animate.min.css' %}" rel="stylesheet">
+   <link href="{% static 'lib/ionicons/css/ionicons.min.css' %}" rel="stylesheet">
+   <link href="{% static 'lib/owlcarousel/assets/owl.carousel.min.css' %}" rel="stylesheet">
+   <link href="{% static 'lib/lightbox/css/lightbox.min.css' %}" rel="stylesheet">
+
+
+   <!--Fonts-->
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mansalva&family=Caveat&family=La+Belle+Aurore&family=Sarina&amily=Chewy&family=Nanum+Pen+Script&family=Oooh+Baby&family=Sacramento&display=swap" rel="stylesheet">
+   <!--External Sytlsheet-->
+   <link href="{% static 'css/style.css' %}" rel="stylesheet">
+
+   <!-- Jquery files -->
+   <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+
+   <script type="text/javascript">
+      (function(){
+         console.log("self execution");
+      })();
+   </script>
+
+   <style media="screen">
+      .count-info {
+         color: #1bb1dc;
+         font-weight: 500;
+         text-transform: lowercase;
+      }
+
+      @media only screen and (max-width: 600px) {
+     body {
+       font-size: 1em;
+     }
+}
+
+   </style>
+   {% block head %} {% endblock head %}
+
+</head>
+
+<body>
+   <header id="header">
+      <div class="container">
+
+         <div class="logo float-left">
+            <!-- Uncomment below if you prefer to use an image logo -->
+            <h2 class="text-light font-weight-bold"><a href="{% url 'home' %}" class="scrollto"><span style="color: #1bb1dc; font-family: 'Mansalva', cursive !important;">Ninja's Cafe</span></a></h2>
+            <!-- <a href="#header" class="scrollto"><img src="img/logo.png" alt="" class="img-fluid"></a> -->
+         </div>
+
+         <nav class="main-nav float-right d-none d-lg-block">
+            <ul>
+               <li class="active"><a href="{% url 'home' %}">Home</a></li>
+               <li><a href="{% url 'menu' %}">Menu</a></li>
+               <!--
+               <li><a href="{% url 'chefs' %}">Our Chefs</a></li>
+            -->
+               <li><a href="{% url 'contact' %}">Contact</a></li>
+
+               {%  if user.is_authenticated %}
+               <li><a href="{% url 'user_profile' request.user.username %}">Account</a></li>
+               {% else %}
+               <li><a href="{% url 'login' %}">Login/Signup</a></li>
+               {% endif %}
+
+               {% if user.is_authenticated and user.is_superuser %}
+               <li><a href="{% url 'manage_order' 'ordered' %}">Manage Orders</a></li>
+               {% elif user.is_authenticated %}
+               <li><a href="{% url 'order' %}">Cart <small id="cart-counter" style="font-size: 1em;" class='count-info'></small> </a></li>
+               {% endif%}
+            </ul>
+         </nav><!-- .main-nav -->
+
+      </div>
+   </header><!-- #header -->
+
+   {% block content %}
+
+   {% endblock content %}
+
+   <footer class="page-footer font-small blue-grey lighten-5">
+
+      <div style="background-color: #17a2b8;">
+         <div class="container">
+
+            <!-- Grid row-->
+            <div class="row py-4 d-flex align-items-center">
+
+               <!-- Grid column -->
+               <div class="col-md-6 col-lg-5 text-center text-md-left mb-4 mb-md-0">
+                  <h6 class="mb-0 text-white" style="font-size:1.7em; font-weight: 700">Get connected with us on social networks!</h6>
+               </div>
+               <!-- Grid column -->
+
+               <!-- Grid column -->
+               <div class="col-md-6 col-lg-7 text-center text-md-right text-white">
+
+                  <!-- Facebook -->
+                  <a class="fb-ic px-3 fa-lg">
+                     <i class="fa fa-facebook-official" aria-hidden="true"></i>
+                  </a>
+                  <!-- Twitter -->
+                  <a class="tw-ic px-3 fa-lg">
+                     <i class="fa fa-twitter"> </i>
+                  </a>
+                  <!--Linkedin -->
+                  <a class="li-ic px-3 fa-lg">
+                     <i class="fa fa-linkedin"> </i>
+                  </a>
+                  <!--Instagram-->
+                  <a class="px-3">
+                     <i class="fa fa-instagram fa-lg"> </i>
+                  </a>
+
+               </div>
+               <!-- Grid column -->
+
+            </div>
+            <!-- Grid row-->
+
+         </div>
+      </div>
+
+      <div style="background-color: #17a2b8 ;" class="footer-copyright text-center text-white pb-4">© 2020 Copyright:
+         <a class="text-white" href="https://mdbootstrap.com/"> MDBootstrap.com</a>
+      </div>
+
+   </footer>
+   <!-- Footer -->
+
+
+   <!-- Optional JavaScript -->
+   <script src="{% static 'lib/jquery/jquery.min.js' %}"></script>
+   <script src="{% static 'lib/jquery/jquery-migrate.min.js' %}"></script>
+   <script src="{% static 'lib/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+   <script src="{% static 'lib/easing/easing.min.js' %}"></script>
+   <script src="{% static 'lib/mobile-nav/mobile-nav.js' %}"></script>
+   <script src="{% static 'lib/wow/wow.min.js' %}"></script>
+   <script src="{% static 'lib/waypoints/waypoints.min.js' %}"></script>
+   <script src="{% static 'lib/counterup/counterup.min.js' %}"></script>
+   <script src="{% static 'lib/owlcarousel/owl.carousel.min.js' %}"></script>
+   <script src="{% static 'lib/isotope/isotope.pkgd.min.js' %}"></script>
+   <script src="{% static 'lib/lightbox/js/lightbox.min.js' %}"></script>
+   <!-- Contact Form JavaScript File -->
+   <script src="contactform/contactform.js"></script>
+
+   <!-- Template Main Javascript File -->
+   <script src="{% static 'js/main.js' %}"></script>
+
+   <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+
+   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+   <script type="text/javascript">
+      function cart_count(value) {
+         //console.log('i am working');
+         $('#cart-counter').html(value + ' items');
+      }
+
+      $('#header').ready(function() {
+         $.ajax({
+            url: "{% url 'cart_counter' %}",
+
+            success: function(response) {
+               console.log('getting cart-update');
+               $('#cart-counter').html(response + ' items');
+            },
+         });
+      });
+
+   </script>
+</body>
+
+</html>

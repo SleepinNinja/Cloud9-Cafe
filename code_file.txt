@@ -1,0 +1,4112 @@
+
+				<--------contact---------->
+		----------models.py--------------
+from django.db import models
+
+# Create your models here.
+
+				<--------contact---------->
+		----------urls.py--------------
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path("", views.contact, name = "contact")
+]
+
+				<--------contact---------->
+		----------views.py--------------
+from django.shortcuts import render
+from home.views import Text
+from django.conf import settings
+from django.core.mail import send_mail
+from django.http import HttpResponse
+from home.views import Image, Text
+# Create your views here.
+
+def contact(request):
+    if request.method == 'POST':
+        print(request.POST)
+        if request.user.is_authenticated:
+            sender = request.user.email
+
+        else:
+            sender = request.POST['sender-mail']
+
+        reciever = [settings.EMAIL_HOST_USER,]
+        subject = request.POST['subject']
+        message = request.POST['message']
+
+        send_mail(subject, message, sender, reciever)
+
+        return HttpResponse('message_sent')
+
+    else:
+        contact_text = Text.objects.all().filter(page = "contact us")
+        images = Image.objects.all().filter(page = 'contact us')
+
+        section1_text = contact_text.get(section = 'section 1')
+        print(len(section1_text.content.split('\n\n')))
+        print(*section1_text.content.split('\n'), sep = '\n')
+        print(*section1_text.content.split('\n\n'), sep = '\n')
+        section21_text = contact_text.get(section = 'section 2.1')
+        section22_text = contact_text.get(section = 'section 2.2')
+
+        data = {
+            'text': contact_text,
+            'image': images.get(section = 'section 1'),
+            'section2': images.get(section = 'section 2'),
+            'section21': (section21_text.title, section21_text.content.split('\n')),
+            'section22': (section22_text.title, section22_text.content.split('\n')),
+        }
+
+        return render(request, "contact.html", data)
+
+				<--------home---------->
+		----------models.py--------------
+from django.db import models
+from django.contrib.auth.models import User
+
+
+# Create your models here.
+
+"""
+Here by default the values are set to not null,
+ie. a code like this will generate a table creation like this
+in sqlite
+from django.db import models
+
+class Person(models.Model):
+    first_name = models.CharField(max_length=30)
+    last_name = models.CharField(max_length=30)
+
+
+CREATE TABLE myapp_person (
+    "id" serial NOT NULL PRIMARY KEY,
+    "first_name" varchar(30) NOT NULL,
+    "last_name" varchar(30) NOT NULL
+);
+"""
+
+class Image(models.Model):
+    page = models.CharField(max_length = 10000)
+    section = models.CharField(max_length = 10000, null = True)
+    image = models.ImageField(upload_to = 'img/')
+
+    def __str__(self):
+        return self.page + ' ' + self.section
+
+
+class Text(models.Model):
+    page = models.CharField(max_length = 10000, default = "")
+    section = models.CharField(max_length = 10000, default = "")
+    title = models.CharField(max_length = 1000, blank = True, default = "")
+    content = models.TextField(blank = True, default = "")
+
+    def __str__(self):
+        return self.page + ' ' + self.section + ' ' + self.title
+
+
+class ProfilePhoto(models.Model):
+    profile_photo = models.ImageField(upload_to = 'media/profile_img' , default = 'profile_img/woman.png')
+    user = models.OneToOneField(User, on_delete = models.CASCADE)
+
+
+class Review(models.Model):
+    user = models.ForeignKey(User, on_delete = models.CASCADE)
+    review = models.TextField();
+
+				<--------home---------->
+		----------urls.py--------------
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path("", views.home, name = "home"),
+    path('login/', views.login, name = 'login'),
+    path('login/register/', views.register, name = 'register'),
+    path('logout/', views.logout, name = 'logout'),
+    path('user/<str:username>/', views.user_profile, name = 'user_profile'),
+    path('user/<str:username>/change_info/', views.change_info, name = 'change_info'),
+    path('manage order/<str:order_type>/', views.manage_order , name = 'manage_order'),
+    path('cart-counter/', views.cart_counter, name = 'cart_counter'),
+    path('register_user/', views.register_user, name = 'register_user'),
+    path('username_available/', views.username_available, name = 'username_available'),
+    path('reset_password/', views.forgot_password, name = 'forgot_password'),
+    path('action/', views.action, name = 'action'),
+    path('submit-review/', views.submit_review, name = 'submit_review'),
+]
+
+#path('manage order/action', views.action, name = 'action'),
+
+				<--------home---------->
+		----------views.py--------------
+from django.shortcuts import render, redirect
+from django.contrib import auth
+from django.contrib import messages
+from django.contrib.auth.models import User
+from .models import Text, Image, ProfilePhoto, Review
+from order.models import Cart, Order
+from django.http import HttpResponse
+from order.views import order
+from django.conf import settings
+from django.core.files.storage import FileSystemStorage
+from django.core.mail import send_mail
+import re, random
+
+
+# Create your views here.
+def cart_counter(request):
+    user_cart =  Cart.objects.all().filter(user = request.user)
+    last_index = user_cart.count() - 1
+
+    if last_index < 0:
+        last_index += 1
+
+    last_cart_items = user_cart[last_index].cartitem_set.all()
+
+    return HttpResponse(last_cart_items.count())
+
+
+def home(request):
+    home_images = Image.objects.all().filter(page = 'home')
+
+    reviews = Review.objects.all()
+    reviews_length = reviews.count()
+
+    if reviews_length < 7:
+        last_7 = reviews
+
+    else:
+        last_7 = reviews[reviews_length - 7, reviews_length]
+
+    print(home_images)
+
+    reviews = [(review, ProfilePhoto.objects.get(user = review.user).profile_photo)
+        for review in last_7]
+
+    print(reviews)
+
+    section1 = Text.objects.filter(page = 'home').get(section = 'section 1')
+
+    print(section1.content.split('\n'))
+
+    data = {
+        #'special_section': special_section,
+        #'our_story': our_story[0].content.split('\n'),
+        'section1_image': home_images[0],
+        'reviews': reviews,
+        'text': (section1.title, section1.content.split('\n')),
+    }
+
+    return render(request, "home.html", data)
+
+
+def login(request):
+    if request.method == "POST":
+        username = request.POST['username']
+        password = request.POST['password']
+
+        print(username, password)
+
+        user = auth.authenticate(username = username, password = password)
+        print(user)
+
+        if user is not None:
+            auth.login(request, user)
+            #messages.info(request, "User Logged In Successfully!!")
+            return HttpResponse(True)
+
+        else:
+            return HttpResponse(False)
+
+    image = Image.objects.get(page = 'login')
+
+    return render(request, 'login.html', {'image': image})
+
+
+def forgot_password(request):
+    print(request.POST)
+
+    if request.method == 'POST':
+        action = request.POST['action']
+
+        if action == 'validate-user':
+            username = request.POST['username']
+            user_check = User.objects.all().filter(username = username)
+
+            response = 'valid' if user_check.count() != 0 else 'invalid'
+
+            if response == 'valid':
+                email = User.objects.get(username = username).email
+                return HttpResponse(email)
+
+            return HttpResponse(response)
+
+
+        elif action == 'send-otp':
+            email = request.POST['email']
+            otp = random.randint(1000, 9999)
+            sender = settings.EMAIL_HOST_USER
+            recievers = [email,]
+            subject = 'Password Reset OTP'
+            message = 'Your password reset OTP is: ' + str(otp)
+
+            send_mail(subject, message, sender, recievers)
+
+            return HttpResponse(otp)
+
+        elif action == 'reset-password':
+            username = request.POST['username']
+            user = User.objects.get(username = username)
+            new_password = request.POST['password']
+            user.set_password(new_password)
+            user.save()
+
+            return HttpResponse('Password change successful')
+
+    else:
+        image = Image.objects.filter(page = 'forgot password')
+        image11 = image.get(section = 'section 1.1')
+        image12 = image.get(section = 'section 1.2')
+
+        return render(request, 'forgot_password.html', {
+            'image11': image11,
+            'image12': image12,
+            })
+
+
+def logout(request):
+    auth.logout(request)
+    messages.info(request, "User Logged Out Successfully!!")
+    return redirect(home)
+
+
+def user_profile(request, username):
+    user = request.user
+    images = Image.objects.all().filter(page = 'user')
+    image1 = images.get(section = 'section 1')
+    image_section2 = images.get(section = 'section 2')
+    user_text = Text.objects.all().filter(page = 'user')
+    section21_text = user_text.get(section = 'section 2.1')
+    section22_text = user_text.get(section = 'section 2.2')
+    section2_image = images.get(section = 'section 2')
+
+    data = {
+        'name': user.first_name,
+        'username': user.username,
+        'email': user.email,
+        'profile_photo': ProfilePhoto.objects.get(user = user).profile_photo,
+        'image': image1,
+        'image_section2': image_section2,
+        'section21': (section21_text.title, section21_text.content.split('\n')),
+        'section22': (section22_text.title, section22_text.content.split('\n')),
+    }
+
+    return render(request, 'user_profile.html', data)
+
+
+def register(request):
+    if request.method == "POST":
+        email = request.POST['email']
+        otp = random.randint(1000,10000);
+
+        sender_mail = settings.EMAIL_HOST_USER
+        reciever_mails = [email,]
+        subject = 'OTP Verification'
+        message = f'Your OTP is: {otp}'
+        print('otp', otp)
+
+        try:
+            send_mail(subject, message, sender_mail, reciever_mails)
+            return HttpResponse(otp)
+
+        except:
+            return HttpResponse(False)
+
+    else:
+        images = Image.objects.all().filter(page = 'register')
+        display_image = images.get(section = 'section 1.1')
+        register_image = images.get(section = 'section 1.2')
+        register_text = Text.objects.all().filter(page = 'register').get(section = 'section 1')
+
+        return render(request, 'register.html', {
+            'image': display_image,
+            'register_image': register_image,
+            'register_text': (register_text.title, register_text.content.split('\n')),
+        })
+
+
+def register_user(request):
+    if request.method == 'POST':
+        username = request.POST['username']
+        name = request.POST['name']
+        email = request.POST['email']
+        password = request.POST['password']
+
+        new_user = User.objects.create_user(username = username , first_name = name, email = email, password = password)
+        Cart.objects.create(user = new_user)
+        ProfilePhoto.objects.create(user = new_user)
+
+        return HttpResponse(f'User {username} created successfully')
+
+
+def username_available(request):
+    print('inside username available')
+
+    if request.method == 'POST':
+        username = request.POST['username']
+
+        if request.user.username != username:
+            occupied = User.objects.filter(username = username)
+            is_available = True if occupied.count() == 0 else False
+
+            return HttpResponse(is_available)
+
+        else:
+            return HttpResponse(True)
+
+
+def change_info(request, username):
+    user = request.user
+
+    if request.method == 'POST':
+        print(request.POST)
+        username = request.POST['username']
+        name = request.POST['name']
+        email = request.POST['email']
+
+        print(request.FILES)
+        #print(request.POST['profile_photo'], request.FILES['profile_photo'])
+
+        if len(request.FILES) > 0:
+            upload = request.FILES['profile_photo']
+            fss = FileSystemStorage(location = settings.MEDIA_ROOT + 'profile_img/', base_url =  '/profile_img/')
+            file = fss.save(request.user.username + "_" + upload.name, upload)
+            file_url = fss.url(file)
+            print(file, file_url)
+            print(username, name, email, upload)
+
+            user_profile = ProfilePhoto.objects.get(user = request.user)
+            user_profile.profile_photo = file_url
+
+            user_profile.save()
+
+
+        user.username = username
+        user.first_name = name
+        user.email = email
+
+        print(username, name, email, user, user.username, user.first_name, user.email)
+
+        user.save()
+
+        return HttpResponse(True)
+
+
+        #email_verification = re.compile(r'[a-zA-z0-9]+@[a-zA-Z0-9]*\.mes\.ac\.in')
+
+        """
+        if re.match(email_verification, user.email) != None:
+            user.username = username
+            user.first_name = name
+            user.email = email
+            user.save()
+
+            messages.info(request, 'Changes have been Saved!')
+            return redirect(user_profile, username = username)
+
+        else:
+            messages.info(request, 'Please Enter valid MES Id')
+        """
+
+    info = {
+        'user': user,
+        'profile_image': ProfilePhoto.objects.get(user = request.user).profile_photo,
+    }
+
+    return render(request, 'change_info.html', info)
+
+
+def manage_order(request, order_type):
+    orders = Order.objects.all()
+    order_data = orders.filter(status = order_type)
+
+    #pending_orders = orders.filter(status = 'ordered')
+    #completed_orders = orders.filter(status = 'completed')
+    #canceled_orders = orders.filter(status = 'canceled')
+
+    #print(pending_orders, completed_orders, canceled_orders)
+
+    if order_type == 'ordered':
+        border = 'border-warning'
+        order_data.order_by('delivery_time')
+
+    elif order_type == 'canceled':
+        border = 'border-danger'
+        order_data.order_by('id')
+
+    elif order_type == 'completed':
+        border = 'border-success'
+        order_data.order_by('id')
+
+    data = {
+        'order_data': order_data,
+        'order_type': order_type,
+        'border': border,
+    }
+
+    return render(request, 'manage_order.html', data)
+
+
+def action(request):
+    print('inside of action')
+
+    if request.method == 'POST':
+        order_id = request.POST['order_id']
+        requested_order = Order.objects.get(pk = order_id)
+        action = request.POST['action']
+
+        if action == 'completed':
+            receiving_otp = random.randint(1000, 9999)
+            sender_mail = settings.EMAIL_HOST_USER
+            receiver_mail = [requested_order.user.email,]
+            subject = f"Your order is prepared!"
+            message = f" order id: {order_id} \n Receiving OTP: {receiving_otp} \n Amount: {requested_order.total_price}"
+            send_mail(subject, message, sender_mail, receiver_mail)
+
+            requested_order.status = 'completed'
+            requested_order.otp = receiving_otp
+
+        elif action == 'cancel':
+            requested_order.status = 'canceled'
+
+        requested_order.save()
+
+        return HttpResponse("action " + action + ' performed')
+
+        #page = request.POST['page']
+
+        #if page == 'order':
+        #    return redirect(order)
+
+        #return redirect(manage_order, order_type = 'ordered')
+
+def submit_review(request):
+    if request.method == 'POST':
+        review = request.POST['review']
+        Review.objects.create(user = request.user, review = review)
+
+        #make a new review object with arguments review and user
+
+        return HttpResponse('Review Submitted successfully')
+
+				<--------menu---------->
+		----------models.py--------------
+from django.db import models
+
+# Create your models here.
+
+class MenuType(models.Model):
+    name = models.CharField(max_length = 1000)
+    description = models.CharField(max_length = 100000, default = None)
+    image = models.ImageField(upload_to = 'menu type/', default = 'menu type/dish-2.png')
+
+    def __str__(self):
+        return self.name
+
+class MenuItem(models.Model):
+    name = models.CharField(max_length = 1000)
+    price = models.IntegerField()
+    description = models.CharField(max_length = 10000000, default = None)
+    type = models.ForeignKey(MenuType, on_delete = models.CASCADE, blank = True, null = True, default = None)
+    image = models.ImageField(upload_to = 'menu item/', default = 'menu item/dish-3.png')
+
+    def __str__(self):
+        return self.name
+
+				<--------menu---------->
+		----------urls.py--------------
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path("", views.menu, name = "menu"),
+    path('item/add-item/', views.add_item, name = 'add_item'),
+    path("<str:type>/", views.menu_display, name = 'menu_display'),
+]
+
+				<--------menu---------->
+		----------views.py--------------
+from django.shortcuts import render, redirect
+from . import models
+from .models import MenuType, MenuItem
+from home.models import Image, Text
+from order.models import Cart, CartItem
+from django.contrib.auth.models import User
+from home.views import register
+from django.contrib import messages
+from django.http import HttpResponse
+from home.views import register
+
+# Create your views here.
+
+def menu(request):
+    types = MenuType.objects.all()
+    images = Image.objects.all().filter(page = 'menu')
+
+    menu_text = Text.objects.all().filter(page = 'menu')
+    section1_text = menu_text.get(section = 'section 1')
+    section2_text = menu_text.get(section = 'section 2')
+
+    #print(*[image.image for image in images], sep = "\n")
+
+    data = {
+        'types': types,
+        'section1': images.get(section = 'section 1'),
+        'section2': images.get(section = 'section 2'),
+        'section1_text': (section1_text.title, section1_text.content.split('\n')),
+        'section2_text': (section2_text.title, section2_text.content.split('\n')),
+
+    }
+
+    return render(request, "menu.html", data)
+
+
+def menu_display(request, type):
+    print('inside of menu display', type)
+    menu_type = MenuType.objects.filter(name = type)[0]
+    menu_items = menu_type.menuitem_set.all()
+    item_count = menu_items.count()
+
+    image = Image.objects.filter(page = type)
+    section1 = Text.objects.filter(page = type).get(section = 'section 1')
+
+    data = {
+        'menu_items': menu_items,
+        'menu_type': menu_type,
+        'section1': image.get(section = 'section 1'),
+        'section2': image.get(section = 'section 2'),
+        'section1_text': (section1.title, section1.content.split('\n'))
+        }
+
+
+    return render(request, 'menu_display.html', data)
+
+def add_item(request):
+    if request.method == 'POST':
+        if request.user.is_authenticated:
+            carts = Cart.objects.all()
+            user_cart = carts.filter(user = request.user)
+            last_index = user_cart.count() - 1
+
+            if last_index < 0:
+                last_index += 1
+
+            last_user_cart = user_cart[last_index]
+
+            if last_user_cart.checked_out:
+                new_cart = Cart(user = request.user)
+                new_cart.save()
+
+                cart = new_cart
+
+            else:
+                cart = last_user_cart
+
+            print(cart)
+
+            item_id = request.POST['item_id']
+            item = MenuItem.objects.get(pk = item_id)
+
+            item_quantity = int(request.POST['quantity'])
+            #item_quantity = 1
+            total_price = item.price * item_quantity
+
+            CartItem.objects.create(quantity = item_quantity, total_price = total_price, item = item, cart = cart)
+            #print(request.user.username, cart.cartitem_set.all(), sep = '\n')
+            #print("redirecting to the user to the menu page")
+            return HttpResponse('Item added to cart')
+
+        else:
+            return HttpResponse('False')
+
+				<--------order---------->
+		----------models.py--------------
+from django.db import models
+from django.contrib.auth.models import User
+from menu.models import MenuItem
+from datetime import datetime
+# Create your models here.
+
+
+class Cart(models.Model):
+    checked_out = models.BooleanField(default = False)
+    user = models.ForeignKey(User, on_delete = models.CASCADE)
+
+
+class Order(models.Model):
+    order_date = models.DateTimeField(default = datetime.now)
+    user = models.ForeignKey(User, on_delete = models.CASCADE)
+    cart = models.OneToOneField(Cart, on_delete = models.DO_NOTHING, primary_key = False)
+    status = models.CharField(max_length = 10000, default = 'unordered')
+    total_price = models.IntegerField(default = 0)
+    delivery_time = models.IntegerField(default = 0)
+    otp = models.IntegerField(default = 0)
+
+
+class CartItem(models.Model):
+    quantity = models.IntegerField()
+    total_price = models.IntegerField()
+    item = models.ForeignKey(MenuItem, on_delete = models.CASCADE)
+    cart = models.ForeignKey(Cart, on_delete = models.CASCADE)
+
+				<--------order---------->
+		----------urls.py--------------
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.order, name = 'order'),
+    path('clear/', views.clear, name = 'clear'),
+    path('ordered/', views.ordered, name = 'ordered'),
+    path('remove/', views.remove_item, name='remove_item')
+]
+
+				<--------order---------->
+		----------views.py--------------
+from django.shortcuts import render, redirect
+
+# Create your views here.
+from .models import Cart, CartItem, Order
+from menu.models import MenuItem
+from datetime import datetime
+from django.http import HttpResponse
+from home.views import Image, Text
+
+
+def remove_item(request):
+    user_cart =  Cart.objects.all().filter(user = request.user)
+    last_index = user_cart.count() - 1
+
+    if last_index < 0:
+        last_index += 1
+
+    last_cart_items = user_cart[last_index].cartitem_set.all()
+
+    selected_item_id = request.GET.get('item_id')
+    removed_item = last_cart_items.get(pk = selected_item_id)
+    removed_item.delete()
+
+    return HttpResponse("Item removed")
+
+
+def order(request):
+    user_cart =  Cart.objects.all().filter(user = request.user)
+    last_index = user_cart.count() - 1
+
+    if last_index < 0:
+        last_index += 1
+
+    last_cart_items = user_cart[last_index].cartitem_set.all()
+    total_price = sum([item.total_price for item in last_cart_items])
+    gst = int(total_price * 0.18)
+
+    user_orders = Order.objects.all().filter(user = request.user)
+
+    pending_orders = user_orders.filter(status = 'ordered')
+
+    completed_orders = user_orders.filter(status = 'completed')
+    completed_orders_length = completed_orders.count()
+
+    canceled_orders = user_orders.filter(status = 'canceled')
+    canceled_orders_length = canceled_orders.count()
+
+    if completed_orders_length < 3:
+        last_3_completed = completed_orders
+
+    else:
+        last_3_completed = completed_orders[completed_orders_length - 3: completed_orders_length]
+
+    if canceled_orders_length < 3:
+        last_3_canceled = canceled_orders
+
+    else:
+        last_3_canceled = canceled_orders[canceled_orders_length - 3: canceled_orders_length]
+
+    print(pending_orders, last_3_completed, last_3_canceled)
+
+    section1_text = Text.objects.all().filter(page = 'order').get(section = 'section 1')
+
+    image = Image.objects.get(page = 'orders')
+
+    data = {
+        'pending_orders': pending_orders,
+        'completed_orders': last_3_completed,
+        'canceled_orders': last_3_canceled,
+        'cart_items': last_cart_items,
+        'user': request.user,
+        'total_price': total_price,
+        'gst': gst,
+        'image': image,
+        'section1': (section1_text.title, section1_text.content.split('\n')),
+    }
+
+    return render(request, 'order.html', data)
+
+
+def clear(request):
+    user_carts = Cart.objects.all().filter(user = request.user)
+    last_index = user_carts.count() - 1
+
+    if last_index < 0:
+        last_index += 1
+
+    last_cart = user_carts[last_index]
+    last_cart.cartitem_set.all().delete()
+
+    return redirect(order)
+
+
+def ordered(request):
+    print(request.GET)
+
+    image = Image.objects.get(page = 'welcome')
+    user_carts = Cart.objects.all().filter(user = request.user)
+    last_index = user_carts.count() - 1
+    last_cart = user_carts[last_index]
+    last_cart.checked_out = True
+    last_cart.save()
+
+    delivery_time = request.GET['delivery_time']
+    total_price = request.GET['total_price']
+    print(delivery_time, total_price)
+
+    order_date = datetime.now()
+
+    Order.objects.create(order_date = order_date, user = request.user, cart = last_cart,
+    status = 'ordered', total_price = total_price, delivery_time = delivery_time)
+
+    new_cart = Cart(user = request.user)
+    new_cart.save()
+
+    section1_text = Text.objects.all().filter(page = 'welcome').get(section = 'section 1')
+
+    return render(request, 'welcome.html', {
+    'image': image,
+    'section1': (section1_text.title, section1_text.content.split('\n'))
+    })
+
+				<--------templates---------->
+		----------base.html--------------
+{% load static %}
+
+<!doctype html>
+<html lang="en">
+
+<head>
+   <!-- Required meta tags -->
+   <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+   <meta content="width=device-width, initial-scale=1.0" name="viewport">
+   <meta content="" name="keywords">
+   <meta content="" name="description">
+
+
+   <!-- Bootstrap CSS -->
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+   <title>{% block title %} {% endblock title %}</title>
+
+   <!-- Favicons -->
+   <link href="{ static 'img/favicon.png' %}" rel="icon">
+   <link href="{ static 'img/apple-touch-icon.png' %}" rel="apple-touch-icon">
+
+   <!-- Google Fonts -->
+   <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,500,600,700,700i|Montserrat:300,400,500,600,700" rel="stylesheet">
+
+   <!-- Bootstrap CSS File -->
+   <link href="{% static 'lib/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+
+   <!-- Libraries CSS Files -->
+   <link href="{% static 'lib/font-awesome/css/font-awesome.min.css' %}" rel="stylesheet">
+   <link href="{% static 'lib/animate/animate.min.css' %}" rel="stylesheet">
+   <link href="{% static 'lib/ionicons/css/ionicons.min.css' %}" rel="stylesheet">
+   <link href="{% static 'lib/owlcarousel/assets/owl.carousel.min.css' %}" rel="stylesheet">
+   <link href="{% static 'lib/lightbox/css/lightbox.min.css' %}" rel="stylesheet">
+
+
+   <!--Fonts-->
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mansalva&family=Caveat&family=La+Belle+Aurore&family=Sarina&amily=Chewy&family=Nanum+Pen+Script&family=Oooh+Baby&family=Sacramento&display=swap" rel="stylesheet">
+   <!--External Sytlsheet-->
+   <link href="{% static 'css/style.css' %}" rel="stylesheet">
+
+   <!-- Jquery files -->
+   <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+
+   <script type="text/javascript">
+      (function(){
+         console.log("self execution");
+      })();
+   </script>
+
+   <style media="screen">
+      .count-info {
+         color: #1bb1dc;
+         font-weight: 500;
+         text-transform: lowercase;
+      }
+
+      @media only screen and (max-width: 600px) {
+     body {
+       font-size: 1em;
+     }
+}
+
+   </style>
+   {% block head %} {% endblock head %}
+
+</head>
+
+<body>
+   <header id="header">
+      <div class="container">
+
+         <div class="logo float-left">
+            <!-- Uncomment below if you prefer to use an image logo -->
+            <h2 class="text-light font-weight-bold"><a href="{% url 'home' %}" class="scrollto"><span style="color: #1bb1dc; font-family: 'Mansalva', cursive !important;">Ninja's Cafe</span></a></h2>
+            <!-- <a href="#header" class="scrollto"><img src="img/logo.png" alt="" class="img-fluid"></a> -->
+         </div>
+
+         <nav class="main-nav float-right d-none d-lg-block">
+            <ul>
+               <li class="active"><a href="{% url 'home' %}">Home</a></li>
+               <li><a href="{% url 'menu' %}">Menu</a></li>
+               <!--
+               <li><a href="{% url 'chefs' %}">Our Chefs</a></li>
+            -->
+               <li><a href="{% url 'contact' %}">Contact</a></li>
+
+               {%  if user.is_authenticated %}
+               <li><a href="{% url 'user_profile' request.user.username %}">Account</a></li>
+               {% else %}
+               <li><a href="{% url 'login' %}">Login/Signup</a></li>
+               {% endif %}
+
+               {% if user.is_authenticated and user.is_superuser %}
+               <li><a href="{% url 'manage_order' 'ordered' %}">Manage Orders</a></li>
+               {% elif user.is_authenticated %}
+               <li><a href="{% url 'order' %}">Cart <small id="cart-counter" style="font-size: 1em;" class='count-info'></small> </a></li>
+               {% endif%}
+            </ul>
+         </nav><!-- .main-nav -->
+
+      </div>
+   </header><!-- #header -->
+
+   {% block content %}
+
+   {% endblock content %}
+
+   <footer class="page-footer font-small blue-grey lighten-5">
+
+      <div style="background-color: #17a2b8;">
+         <div class="container">
+
+            <!-- Grid row-->
+            <div class="row py-4 d-flex align-items-center">
+
+               <!-- Grid column -->
+               <div class="col-md-6 col-lg-5 text-center text-md-left mb-4 mb-md-0">
+                  <h6 class="mb-0 text-white" style="font-size:1.7em; font-weight: 700">Get connected with us on social networks!</h6>
+               </div>
+               <!-- Grid column -->
+
+               <!-- Grid column -->
+               <div class="col-md-6 col-lg-7 text-center text-md-right text-white">
+
+                  <!-- Facebook -->
+                  <a class="fb-ic px-3 fa-lg">
+                     <i class="fa fa-facebook-official" aria-hidden="true"></i>
+                  </a>
+                  <!-- Twitter -->
+                  <a class="tw-ic px-3 fa-lg">
+                     <i class="fa fa-twitter"> </i>
+                  </a>
+                  <!--Linkedin -->
+                  <a class="li-ic px-3 fa-lg">
+                     <i class="fa fa-linkedin"> </i>
+                  </a>
+                  <!--Instagram-->
+                  <a class="px-3">
+                     <i class="fa fa-instagram fa-lg"> </i>
+                  </a>
+
+               </div>
+               <!-- Grid column -->
+
+            </div>
+            <!-- Grid row-->
+
+         </div>
+      </div>
+
+      <div style="background-color: #17a2b8 ;" class="footer-copyright text-center text-white pb-4">© 2020 Copyright:
+         <a class="text-white" href="https://mdbootstrap.com/"> MDBootstrap.com</a>
+      </div>
+
+   </footer>
+   <!-- Footer -->
+
+
+   <!-- Optional JavaScript -->
+   <script src="{% static 'lib/jquery/jquery.min.js' %}"></script>
+   <script src="{% static 'lib/jquery/jquery-migrate.min.js' %}"></script>
+   <script src="{% static 'lib/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+   <script src="{% static 'lib/easing/easing.min.js' %}"></script>
+   <script src="{% static 'lib/mobile-nav/mobile-nav.js' %}"></script>
+   <script src="{% static 'lib/wow/wow.min.js' %}"></script>
+   <script src="{% static 'lib/waypoints/waypoints.min.js' %}"></script>
+   <script src="{% static 'lib/counterup/counterup.min.js' %}"></script>
+   <script src="{% static 'lib/owlcarousel/owl.carousel.min.js' %}"></script>
+   <script src="{% static 'lib/isotope/isotope.pkgd.min.js' %}"></script>
+   <script src="{% static 'lib/lightbox/js/lightbox.min.js' %}"></script>
+   <!-- Contact Form JavaScript File -->
+   <script src="contactform/contactform.js"></script>
+
+   <!-- Template Main Javascript File -->
+   <script src="{% static 'js/main.js' %}"></script>
+
+   <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+
+   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+   <script type="text/javascript">
+      function cart_count(value) {
+         //console.log('i am working');
+         $('#cart-counter').html(value + ' items');
+      }
+
+      $('#header').ready(function() {
+         $.ajax({
+            url: "{% url 'cart_counter' %}",
+
+            success: function(response) {
+               console.log('getting cart-update');
+               $('#cart-counter').html(response + ' items');
+            },
+         });
+      });
+
+   </script>
+</body>
+
+</html>
+
+				<--------templates---------->
+		----------change_info.html--------------
+{% load static %}
+
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link rel="icon" href="{% static 'img/icons8-info-48.png' %}">
+   <link href="https://fonts.googleapis.com/css2?family=Mansalva&family=Caveat&family=La+Belle+Aurore&family=Sarina&amily=Chewy&family=Nanum+Pen+Script&family=Oooh+Baby&family=Sacramento&display=swap" rel="stylesheet">
+    <title>Change Info</title>
+
+    <style media="screen">
+      p {
+         font-weight: 600;
+         margin-top: 2%;
+         margin-bottom: 0;
+      }
+
+      body {
+         background: white;
+         font-size: 0.8em;
+      }
+
+      .profile-image {
+         broder-radius: 50%;
+         height: 300px;
+         width: 300px;
+         margin-bottom: 20px;
+      }
+
+      small{
+         color: red;
+         font-size: 1.7em;
+      }
+
+      h2 {
+         color: black;
+         font-weight: 700;
+      }
+
+      @media(min-width: 1080px){
+         input{
+            max-width: 70% !important;
+         }
+      }
+
+      p {
+         font-size: 2.2em;
+         color: #17a2b8;
+      }
+
+      form {
+         box-shadow: 0 0px 30px 0 rgba(27,177,220, 0.85);
+      }
+
+      @media only screen and (max-width: 768px){
+         .profile-image {
+            height: 250px;
+            width: 250px;
+         }
+
+         #profile-form {
+            width: 80vw !important;
+            margin: 0 auto 0 auto;
+         }
+      }
+
+   </style>
+  </head>
+
+<body style="height: 100vh;">
+  <div class="wrapper fadeInDown" style="">
+        <!-- Tabs Titles -->
+
+        <!-- Login Form -->
+        <form id="profile-form" class="text-center container rounded-top w-auto" method="POST" enctype="multipart/form-data">
+           {% csrf_token %}
+           <div class="">
+              <div class="row">
+                 <div class="col-sm-12 col-md-6 col-lg-6">
+                    <br><p class="mb-3" for="">Profile Photo</p>
+
+                    <img id="profile-image" src="{{ profile_image.url }}" class='profile-image rounded-circle mb-5' alt=""><br>
+                    <input type="file" id="profile-photo" name="profile_photo" onchange="readUrl(this);" accept="image/*">
+                 </div>
+
+                 <div class="col-sm-12 col-md-6 col-lg-6">
+                    <br><p for="">Username</p>
+                    <input class="" type="text" id="username" class="fadeIn second" value="{{user.username}}" name="username" placeholder="Enter Username">
+                    <br><small id="usrnme"></small>
+                    <p for="">Name</p>
+                    <input class="" type="text" id="name" class="fadeIn second" value="{{user.first_name}}" name="name" placeholder="Enter Name">
+                    <br><small id="nme"></small>
+                    <p for="">Email</p>
+                    <input class="" type="text" id="email" class="fadeIn second" value="{{user.email}}" name="email" placeholder="Enter Email">
+                    <br><small id="mail"></small><br>
+                 </div>
+
+                 <div class="mx-auto px-0">
+                     <button id="profile-update" type="submit" class="btn btn-info btn-lg my-3" style="font-size: 1.5em">Submit Changes</button>
+                 </div>
+              </div>
+           </div>
+        </form>
+     </div>
+
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+  <script type="text/javascript">
+     $(document).ready(function() {
+        console.log('Document is ready');
+        var default_username = $('#username').val();
+        console.log(default_username);
+
+        $('#username').focus(function() {
+           $('#usrnme').text('');
+        });
+
+        $('#name').focus(function() {
+           $('#nme').text('');
+        });
+
+        $('#email').focus(function() {
+           $('#mail').text('');
+        });
+
+        function empty_check(selector) {
+           var fields = {
+              'username': 'usrnme',
+              'email': 'mail',
+              'name': 'nme'
+           }
+
+           var value = $('#' + selector).val();
+
+           if (value.length == 0) {
+              $('#' + fields[selector]).text(selector + ' ' + 'cannot be empty');
+              return false;
+           }
+
+           return true;
+        }
+
+        function validity_check(selector) {
+           var fields = {
+              'username': 'usrnme',
+              'email': 'mail',
+              'name': 'nme'
+           }
+
+           var value = $('#' + selector).val();
+            console.log('validity value :', value);
+
+
+           if (selector == 'username') {
+
+              if(value.length > 20){
+                 $('#' + fields[selector]).text('Username too long!');
+                 return false;
+              }
+
+              else {
+                 var is_valid = {};
+
+                 $.ajax({
+                    type: 'POST',
+                    url: "{% url 'username_available' %}",
+                    data: {
+                       username: value,
+                       csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+                    },
+
+                    success: function(response) {
+                       console.log('response username :', response == 'True');
+                       if (response == 'True') {
+                          console.log('valid')
+                          is_valid = true;
+                       }
+
+                       else {
+                          //console.log(value, typeof({{ user.username }}), {{ user.username }});
+                          $('#' + fields[selector]).text('Username not available');
+                          is_valid = false;
+                       }
+                    }
+                 });
+                  console.log('is_valid', is_valid);
+                 return is_valid
+              }
+           }
+
+           else if (selector == 'email') {
+              email_regex = /[a-z0-9.]{5,}@[a-z]{3,}[.]{1}[a-z]{2,}/;
+              console.log(value, email_regex.test(value), fields ,fields[selector], selector);
+
+              if (email_regex.test(value)) {
+                 return true;
+              }
+              else {
+                 $('#' + fields[selector]).text('Not a valid email address');
+                 return false;
+              }
+           }
+
+           else if (selector == 'name'){
+              name_regex = /^[A-Za-z\s]+$/;
+              console.log('name: ' + value, name_regex.test(value));
+
+              if(name_regex.test(value)){
+                 return true;
+              }
+
+              else if(value.length > 30){
+                 $('#' + fields[selector]).text('Name too long, 30 characters allowed');
+                 return false;
+              }
+
+              else {
+                 $('#' + fields[selector]).text('Not a valid name, only characters allowed');
+                 return false;
+              }
+           }
+        }
+
+        $('#profile-form').submit(function(event) {
+           event.preventDefault();
+           console.log("submit");
+
+           $('#profile-form').keypress(function(event){
+              var keyPressed = event.keyCode || event.which;
+              if (keyPressed === 13) {
+                 event.preventDefault();
+                 return false;
+              }
+
+           });
+
+           var is_valid = [];
+           var fieldss = ['name', 'email', 'username',];
+           var submit_username = $('#username').val();
+           console.log('submit_username ', submit_username, default_username);
+
+           console.log($('#profile-photo').prop('files'));
+
+           console.log(fieldss.toString());
+
+           fieldss.forEach(function(field){
+              if(empty_check(field)){
+                 console.log('empty of func', field);
+                 if(validity_check(field)){
+                    console.log('valid of func', field);
+                    is_valid.push(field);
+                 }
+              }
+           });
+
+           console.log(is_valid.toString(), is_valid.length);
+
+           if(is_valid.length == 3){
+
+               var fd = new FormData(this);
+               var files = $('#profile-photo').prop('files')[0];
+
+               // Check file selected or not
+               fd['profile_photo'] = files;
+
+               console.log(fd, files)
+
+               $.ajax({
+                  type: 'POST',
+                  url: "{% url 'change_info' user.username %}",
+                  data: fd,
+                  processData: false,
+                  contentType: false,
+
+                  success: function(response){
+                     $('#profile-update').removeAttr('disabled');
+
+                     console.log('Profile photo updated successfully');
+
+                     if(response == 'True'){
+                       var $success = $(
+                       `<div class="alert mx-auto text-center mt-5 col-8 alert-success text-left alert-dismissible fade show" role="alert">
+                          <p><strong style="color: black;">Profile Updated Successfully!</strong></p>
+                            <button type="button" class="close" data-dismiss="alert" aria-p="Close">
+                              <span aria-hidden="true">&times;</span>
+                            </button>
+                       </div>`
+                       );
+
+                       $('#profile-form').prepend($success);
+                       window.location.replace("{% url 'user_profile' user.username %}");
+                    }
+                  },
+
+                  error: function(error){
+                     alert("An error occured while updating image: " + error);
+                  }
+
+               });
+               //console.log(url);
+               /*
+              $.ajax({
+                 type: 'POST',
+                 url: "{% url 'change_info' user.username %}",
+                 data: {
+                    username: $('#username').val(),
+                    enctype: 'multipart/form-data',
+                    name: $('#name').val(),
+                    //profile_photo: fd,
+                    email: $('#email').val(),
+                    csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+                 },
+
+                 success: function(response){
+                    console.log(response)
+                    if(response == 'True'){
+                       var $success = $(
+                       `<div class="alert m-4 alert-success text-left alert-dismissible fade show" role="alert">
+                          <strong>Profile Updated Successfully!</strong>
+                            <button type="button" class="close" data-dismiss="alert" aria-p="Close">
+                              <span aria-hidden="true">&times;</span>
+                            </button>
+                       </div>`
+                       );
+
+                       $('#profile-form').prepend($success);
+                    }
+                 },
+
+                 error: function(error){
+                    console.log('An error occured while changing info ' + error);
+                 },
+
+              });*/
+
+           }
+        });
+     });
+
+     function readUrl(input) {
+        console.log('file seletected', input, input.files);
+        if (input.files && input.files[0]) {
+           var reader = new FileReader();
+
+           reader.onload = function(e) {
+              $('#profile-image').attr('src', e.target.result);
+              console.log(e);
+           };
+
+           reader.readAsDataURL(input.files[0]);
+        }
+     }
+  </script>
+
+  </body>
+</html>
+<!------ Include the above in your HEAD tag ---------->
+
+				<--------templates---------->
+		----------chefs.html--------------
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+Our Chefs
+{% endblock title %}
+
+{% block content %}
+<!-- Team Section -->
+<div id="team">
+  <div class="container">
+    <div id="row">
+      <div class="col-md-6">
+        <div class="col-md-10 col-md-offset-1">
+           {% for txt in text %}
+          <div class="section-title">
+            <h2>{{ txt.section }}</h2>
+          </div>
+          <p>{{ txt.content }}</p>
+        </div>
+         {% endfor %}
+      </div>
+      <div class="col-md-6">
+         {% for chef_image in chefs_images %}
+        <div class="team-img">
+           <img src="{{ chef_image.image.url }}" alt="..."></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+				<--------templates---------->
+		----------contact.html--------------
+{% extends "base.html" %}
+
+{% load static %}
+
+
+{% block title %}
+Contact Us
+{% endblock title %}
+
+{% block head %}
+
+<style media="screen">
+   pre {
+      font-size: 1.6em;
+      font-weight: 500;
+      margin-bottom: 10%;
+   }
+
+   h3 {
+      font-size: 4em;
+      text-align: center;
+      position: relative;
+      font-weight: 700;
+   }
+</style>
+
+<link rel="icon" href="{% static 'img/icons8-contact-58.png' %}">
+
+{% endblock head %}
+
+{% block content %}
+<section id="features">
+   <div class="container mt-5">
+      <div class="row feature-item">
+         <div class="col-lg-6 wow fadeInUp">
+            <img src="{{ image.image.url }}" class="img-fluid" alt="">
+         </div>
+         <div class="col-lg-6 wow fadeInUp pt-5 pt-lg-0 text-center">
+
+            <h3 class="text-info">Contact Number</h3>
+            <p>754-3010, 954-3600</p>
+            <h3 class="text-info">Address</h3>
+            <p>
+         Street: Corniche El-Nile, Tower A, <br>
+         Entrance B Town: Shoubra, <br>
+         City: Yukrig Pasas
+           </p>
+            <h3 class="text-info">Opening Hours</h3>
+            <p>
+         Weekdays: 8am - 10pm <br>
+         Weekends: 8am -12pm
+         </p>
+         </div>
+      </div>
+   </div>
+</section>
+
+<footer id="footer" class="section-bg">
+   <div class="footer-top" style="background: none;">
+      <div class="container col-lg-6 col-md-10 col-sm-12">
+
+         <div class="form">
+
+            <h3 class='text-info' id="big">{{ section21.0 }}</h3>
+            {% for txt in section21.1 %}
+            <p>{{ txt }}</p>
+            {% endfor %}
+            <form action="" method="POST" role="form" class="contactForm">
+               {% csrf_token %}
+               {% if not user.is_authenticated %}
+               <div class="form-group">
+                  <input type="text" class="form-control" name="sender-mail" id="sender-mail" placeholder="Your mail Id" data-rule="minlen:4" data-msg="Please enter at least 8 chars of subject" />
+                  <div class="validation"></div>
+               </div>
+               {% endif %}
+               <div class="form-group">
+                  <input type="text" class="form-control" name="subject" id="subject" placeholder="Subject" data-rule="minlen:4" data-msg="Please enter at least 8 chars of subject" />
+                  <div class="validation"></div>
+               </div>
+               <div class="form-group">
+                  <textarea class="form-control" id="message" name="message" rows="5" data-rule="required" data-msg="Please write something for us" placeholder="Enter you message for us."></textarea>
+                  <div class="validation"></div>
+               </div>
+
+               <div class="text-center"><button id='send-button' type="submit" title="Send Message" class="btn btn-info btn-lg">Send Message</button></div>
+            </form>
+         </div>
+
+      </div>
+   </div>
+
+   <div aria-live="polite" aria-atomic="true" style="position: sticky; top:0; z-index: 1">
+     <!-- Position it -->
+     <div id="toast-box" style="position: absolute; bottom: 30px; right: 1%;">
+
+       <!-- Then put toasts within -->
+     </div>
+   </div>
+</footer>
+
+<script type="text/javascript">
+   $(document).ready(function(){
+      $('.contactForm').trigger('reset');
+   });
+
+   $('.contactForm').submit(function(event){
+      event.preventDefault();
+
+      $('.contactForm').keypress(function(event){
+         var keyPressed = event.keyCode || event.which;
+         if (keyPressed === 13) {
+            event.preventDefault();
+            return false;
+         }
+      });
+
+      var subject = $('#subject').val();
+      var message = $('#message').val();
+      var sender_mail = $('#sender-mail').val();
+
+      console.log(subject, message, sender_mail);
+
+      var fd = new FormData(this);
+      fd['sender_mail'] = sender_mail;
+      fd['subject'] = subject;
+      fd['message'] = message;
+      console.log(fd);
+
+
+      console.log(sender_mail == undefined)
+
+      if (sender_mail != undefined && sender_mail.length == 0){
+         var $message_error = $(
+            `
+            <div class="toast bg-danger rounded" role="alert" data-autohide="true" aria-live="assertive" aria-atomic="true" data-delay='3000'>
+              <div class="toast-header">
+                 <img src="{% static 'img/warning.png' %}" class="rounded mr-3" alt="..." style="height: 30px; width: 30px;">
+                <p class="my-0"><strong class="mr-auto">Empty mail Id</strong></p>
+                <small class="text-muted ml-5 mr-2"></small>
+                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="toast-body">
+               <p class="my-0"> Please enter your mail Id! </p>
+              </div>
+            </div>
+            `
+            );
+
+            $('#toast-box').append($message_error);
+            $message_error.toast('show');
+      }
+
+      else if (sender_mail != undefined && /[a-z.0-9]{3,}@[a-z]{3,}.[a-z]{3,}/.test(sender_mail) == false) {
+         var $message_error = $(
+         `
+         <div class="toast bg-danger rounded" role="alert" data-autohide="true" aria-live="assertive" aria-atomic="true" data-delay='3000'>
+           <div class="toast-header">
+              <img src="{% static 'img/warning.png' %}" class="rounded mr-3" alt="..." style="height: 30px; width: 30px;">
+             <p class="mr-auto text-capitalize font-weight-bold my-0" style="font-size: em;">Invalid Email</p>
+             <small class="text-muted ml-5 mr-2"></small>
+             <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+               <span aria-hidden="true">&times;</span>
+             </button>
+           </div>
+           <div class="toast-body">
+            <p class="my-0"> Please enter a valid email address!</p>
+           </div>
+         </div>
+         `
+         );
+
+         $('#toast-box').append($message_error);
+         $message_error.toast('show');
+      }
+
+      else if (subject.length == 0 || subject == undefined){
+         console.log('empty subject');
+
+         var $subject_error = $(
+         `
+         <div class="toast bg-danger rounded" role="alert" data-autohide="true" aria-live="assertive" aria-atomic="true" data-delay='3000'>
+           <div class="toast-header">
+             <img src="{% static 'img/warning.png' %}" class="rounded mr-3" alt="..." style="height: 30px; width: 30px;">
+             <p class="mr-auto text-capitalize font-weight-bold my-0" style="font-size: em;">Empty Subject</p>
+             <small class="text-muted ml-5 mr-2"></small>
+             <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+               <span aria-hidden="true">&times;</span>
+             </button>
+           </div>
+           <div class="toast-body">
+            <p class="my-0"> Please enter subject for mail!</p>
+           </div>
+         </div>
+         `
+         );
+
+         $('#toast-box').append($subject_error);
+         $subject_error.toast('show');
+      }
+
+      else if (message.length == 0 || message == undefined){
+         var $message_error = $(
+         `
+         <div class="toast bg-danger rounded" role="alert" data-autohide="true" aria-live="assertive" aria-atomic="true" data-delay='3000'>
+           <div class="toast-header">
+              <img src="{% static 'img/warning.png' %}" class="rounded mr-3" alt="..." style="height: 30px; width: 30px;">
+             <p class="mr-auto text-capitalize font-weight-bold my-0" style="font-size: em;">Empty Message</p>
+             <small class="text-muted ml-5 mr-2"></small>
+             <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+               <span aria-hidden="true">&times;</span>
+             </button>
+           </div>
+           <div class="toast-body">
+            <p class="my-0"> Please enter mail body!</p>
+           </div>
+         </div>
+         `
+         );
+
+         $('#toast-box').append($message_error);
+         $message_error.toast('show');
+      }
+
+      else {
+         $('#send-button').attr('disabled', true);
+
+         $.ajax({
+            type: 'POST',
+            url: "{% url 'contact' %}",
+            data: fd,
+            processData: false,
+            contentType: false,
+
+            success: function(response){
+               console.log(response);
+               $('#send-button').removeAttr('disabled');
+               var $form = $('.footer-top').html()
+
+               var $success_message = $(
+               `
+               <div id="message-sent" class="container">
+                  <div class="row">
+                     <div class="col-lg-6 col-sm-12 col-md-6 text-center m-auto">
+                           <h3 class="mb-4 text-center">{{ section22.0 }}</h3>
+                           {% for txt in section22.1 %}
+                           <p style="font-size: 1.8em;">{{ txt }}</p>
+                           {% endfor %}
+                     </div>
+                     <div class="col-lg-6 col-sm-12 col-md-6 text-center">
+                        <img src="{{ section2.image.url }}" alt=""
+                        style="height: 450px; width: 450px;">
+                     </div>
+                  </div>
+               </div>
+               `
+               );
+
+               $('.container.col-lg-6.col-sm-12').replaceWith($success_message);
+
+               setTimeout(function(){
+                  $('#message-sent').replaceWith($form);
+                  window.location.reload();
+               }, 10000);
+            }
+         });
+      }
+   });
+
+</script>
+
+
+{% endblock content %}
+
+				<--------templates---------->
+		----------forgot_password.html--------------
+{% load static %}
+
+{% load static %}
+
+
+<!doctype html>
+<html lang="en">
+
+<head>
+   <!-- Required meta tags -->
+   <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+   <!-- Bootstrap CSS -->
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+   <link rel="stylesheet" href="{% static 'css/login.css' %}">
+   <link rel="stylesheet" href="{% static 'css/style.css' %}">
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Mansalva&family=Caveat&family=La+Belle+Aurore&family=Sarina&amily=Chewy&family=Nanum+Pen+Script&family=Oooh+Baby&family=Sacramento&display=swap" rel="stylesheet">
+   <title>Reset Password</title>
+   <link rel="icon" href="{% static 'img/icons8-lock-48.png' %}">
+
+   <style media="screen">
+
+      body{
+         background-color: white;
+      }
+
+      small{
+         color: red;
+         font-size: 1.3em;
+      }
+
+      h2 {
+         color: black;
+         font-weight: 700;
+      }
+
+      @media(min-width: 1080px){
+         input{
+            max-width: 70% !important;
+         }
+      }
+
+      p {
+         font-size: 1.7em;
+         margin-bottom: 15px;
+      }
+
+      #after {
+         width: 80vw !important;
+         margin: 0 auto 0 auto;
+      }
+
+   </style>
+</head>
+
+<body style="height: 100vh;">
+
+   <div class="wrapper fadeInDown">
+      <div id="formContent">
+         <!-- Tabs Titles -->
+
+         <!-- Icon -->
+         <div class="fadeIn first">
+            <img src="{{ image11.image.url }}"  class="img-fluid mt-3" id="icon" alt="User Icon" />
+         </div>
+
+         <!-- Login Form -->
+         <form class="p-5" id="forgot-password" method="POST" action="">
+            {% csrf_token %}
+            <input type="text" id="username" class="fadeIn third" placeholder="Enter Username">
+            <br><small id='usrnme'></small><br>
+            <button id="submit" type="submit" class="fadeIn fourth mt-3 px-4 btn btn-info btn-lg" style="" type="submit">Send OTP</button>
+         </form>
+
+      </div>
+   </div>
+
+   <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+   <script type="text/javascript">
+      $(document).ready(function(){
+         $('#forgot-password').trigger('reset');
+
+         $('#forgot-password').keypress(function(event){
+            var keyPressed = event.keyCode || event.which;
+            if (keyPressed === 13) {
+               event.preventDefault();
+               return false;
+            }
+         });
+
+         $('#username').focus(function(event){
+            $('#usrnme').text('');
+         });
+
+         $('#submit').click(function(event){
+            event.preventDefault();
+            username = false
+
+            var username = $('#username').val();
+            console.log('username :', username);
+
+            if(username.length == 0 || username == undefined){
+               $('#usrnme').text('Please enter username.');
+            }
+
+            else {
+               console.log('username'+ $('#username').val());
+
+               $.ajax({
+                  type: 'POST',
+                  url: "{% url 'forgot_password' %}",
+                  data: {
+                     username: $('#username').val(),
+                     action: 'validate-user',
+                     csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+                  },
+
+                  success: function(response){
+
+                     if(response == 'invalid'){
+                        $('#usrnme').text('Invalid username.')
+                     }
+
+                     else {
+                        $('#submit').attr('disabled', true);
+                        console.log('disabled');
+
+                        $.ajax({
+                           type: 'POST',
+                           url: "{% url 'forgot_password' %}",
+                           data: {
+                              email: response,
+                              action: 'send-otp',
+                              csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+                           },
+
+                           success: function(response){
+
+                              var $otp_section = $(`
+                                 <p>Password reset OTP has been sent to your registered mail.</p><br>
+                                 <input type="text" id="otp" class="fadeIn third" placeholder="Enter OTP">
+                                 <br><small class="text-danger" id='otp-message'></small>
+                              `);
+
+                              $("#submit").after($otp_section);
+                              console.log('enabled');
+                              $(this).removeAttr('disabled');
+                              $("#submit").hide();
+
+                              var entered_otp;
+
+                              $('#otp').change(function(){
+                                 entered_otp = $('#otp').val();
+                                 if(entered_otp.length == 0){
+                                    $('#otp-message').text('Please enter OTP');
+                                 }
+
+                                 else if(entered_otp != response){
+                                    $('#otp-message').text('Entered OTP is invalid')
+                                 }
+
+                                 else if(entered_otp == response) {
+                                    var $reset_password = $(`
+                                    <form class="p-5" id="reset-password" method="POST">
+                                       {% csrf_token %}
+                                       <input type="text" id="password" class="fadeIn third" placeholder="Enter new Password"><br>
+                                       <small id='pswd'></small>
+                                       <input type="text" id="confirm-password" class="fadeIn third" placeholder="Re-enter new Password"><br>
+                                       <small id='cnf-pswd'></small>
+                                       <button id='reset-pwd-button' type="submit" class="fadeIn fourth mt-4 px-4 btn btn-info btn-lg">Change Password</button>
+                                    </form>
+                                    `);
+
+                                    $('#forgot-password').replaceWith($reset_password);
+                                    all_visited = [];
+                                    is_valid = false
+
+                                    $('#password').bind('focus blur', function(event){
+                                       all_visited.push(true);
+
+                                       if (event.type == 'focus') {
+                                          console.log('password in focus')
+                                          $('#pswd').removeClass('text-info text-danger text-success');
+                                          $('#pswd').text('');
+                                       }
+
+                                       else if (event.type == 'blur'){
+                                          var password = $(this).val();
+
+                                          if (password.length == 0) {
+                                             $('#pswd').text('Password cannot be empty');
+                                          }
+
+                                          else if(password.length < 8){
+                                             $('#pswd').text('Password too short, enter atleast 8 characters');
+
+                                          }
+                                          else {
+
+                                             console.log('password changing');
+                                             alphabets = /[a-zA-Z]+/;
+                                             numbers = /[0-9]+/;
+                                             specials = /[^a-zA-Z0-9]+/;
+
+                                             has_alphabets = alphabets.test(password);
+                                             has_numbers = numbers.test(password);
+                                             has_specials = specials.test(password);
+
+                                             console.log(has_alphabets, has_numbers, has_specials);
+
+                                             if (has_alphabets || has_numbers || has_specials) {
+                                                $('#pswd').addClass('text-danger');
+                                                $('#pswd').text('Password strength: Weak');
+                                             }
+
+                                             if (has_alphabets && has_numbers || has_alphabets && has_specials || has_specials && has_numbers) {
+                                                $('#pswd').removeClass('text-danger');
+                                                $('#pswd').addClass('text-warning');
+                                                $('#pswd').text('Password strength: Good');
+                                             }
+
+                                             if (has_alphabets && has_numbers && has_specials) {
+                                                $('#pswd').removeClass('text-danger text-warning');
+                                                $('#pswd').addClass('text-success');
+                                                $('#pswd').text('Password strength: Strong');
+                                             }
+
+                                             $('#confirm-password').bind('focus blur', function(event){
+                                                all_visited.push(true);
+
+                                                if(event.type == 'focus'){
+                                                   $('#cnf-pswd').text('');
+                                                }
+
+                                                else if(event.type == 'blur'){
+                                                   var confirm_password = $(this).val();
+
+                                                   if (confirm_password.length == 0){
+                                                      $('#cnf-pswd').text('Please enter confirm password');
+                                                   }
+
+                                                   else if(password != confirm_password){
+                                                      $('#cnf-pswd').text('Password does not match');
+                                                   }
+
+                                                   else{
+                                                      is_valid = true;
+                                                   }
+
+                                                }
+                                             });
+                                          }
+                                       }
+                                    });
+
+                                    $('#reset-password').submit(function(event){
+                                       event.preventDefault();
+
+                                       if(all_visited.length < 2){
+                                          var $alert = $(
+                                          `<div class="alert m-4 alert-danger text-left alert-dismissible fade show" role="alert">
+                                             <p><strong>Unvisited Fields</strong><br>Please enter data in all fields!</p>
+                                               <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                                 <span aria-hidden="true">&times;</span>
+                                               </button>
+                                          </div>`
+                                          );
+
+                                          $('#formContent').prepend($alert);
+                                       }
+
+                                       else if (is_valid) {
+                                          $('#reset-pwd-button').attr('disabled', true);
+
+                                          $.ajax({
+                                             type: 'POST',
+                                             url: "{% url 'forgot_password' %}",
+                                             data:{
+                                                password: $('#password').val(),
+                                                username: username,
+                                                action: 'reset-password',
+                                                csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+                                             },
+
+                                             success: function(response){
+                                                $('#reset-pwd-button').removeAttr('disabled');
+
+                                                var $reset_success = $(
+                                                `
+                                                <div id='after' class="container-fluid">
+                                                   <div class="row text-center">
+                                                      <div class="col-lg-6 col-md-8 col-sm-12 mx-auto">
+                                                         <div class="card">
+                                                            <div class="card-body cart" style="box-shadow: rgba(22, 142, 176, 0.85) 0px 10px 35px 5px;">
+                                                               <div class="col-sm-12 empty-cart-cls text-center"> <img src="{{ image12.image.url }}" width="500" height="300" class="img-fluid mb-4 mr-3">
+                                                                  <h3 style="font-size: 2.7em;"><strong>Password Reset Successful!</strong></h3>
+                                                                  <p>You will be redirected to login page shortly.</p>
+                                                               </div>
+                                                            </div>
+                                                         </div>
+                                                      </div>
+                                                   </div>
+                                                  </div>
+                                                `
+                                                );
+
+                                                $('#formContent').replaceWith($reset_success);
+
+                                                setTimeout(function(){
+                                                   window.location.replace("{% url 'login' %}");
+                                                }, 10000);
+                                             }
+                                          });
+                                       }
+                                    });
+                                 }
+                              });
+                           }
+                        });
+                     }
+                  },
+
+                  error: function(error){
+                     alert('Some error occured while validating user: ' + error);
+                  },
+
+               });
+            }
+         });
+      });
+   </script>
+</body>
+</html>
+
+				<--------templates---------->
+		----------home.html--------------
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+Home
+{% endblock title %}
+
+{% block head %}
+
+<style>
+   .testimonial-img {
+      max-height: 300px !important;
+      max-width: 300px !important;
+   }
+
+</style>
+
+<link rel="icon" href="{% static 'img/icons8-home-48.png' %}">
+
+{% endblock head %}
+
+{% block content %}
+
+<section id="intro" class="clearfix mb-5">
+   <div class="container d-flex h-100">
+      <div class="row justify-content-center align-self-center">
+         <div class="col-md-10 text-center col-lg-6 intro-info order-md-last order-lg-first order-last">
+
+            {% if user.is_authenticated %}
+            <h2>Ninja's Cafe <br>Welcome's <span>{{ user.username}}</span></h2>
+            {% for txt in text.1 %}
+            <p>{{ txt }}</p>
+            {% endfor %}
+            {% else %}
+            <h2>Greetings from <br> <span></span> Ninja's Cafe </h2>
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+            {% endif %}
+
+            <div style="margin-top: 10% !important;">
+               <a href="{% url 'menu' %}" class='mr-5'><button class="btn btn-info btn-lg">Visit Menu</button></a>
+               {% if user.is_authenticated and not user.is_superuser %}
+               <a href="{% url 'order' %}"><button class="btn btn-info btn-lg">Visit Order</button></a>
+               {% elif user.is_authenticated and user.is_superuser %}
+               <a href="{% url 'manage_order' 'ordered' %}"><button class="btn btn-info btn-lg">Manage Orders</button></a>
+               {% endif %}
+            </div>
+         </div>
+
+         <div class="col-md-10 col-lg-6 intro-img order-md-first order-lg-last order-first">
+            <img src="{{ section1_image.image.url }}" alt="" class="img-fluid mb-md-5 mt-lg-5" style="padding-top:10vh">
+         </div>
+      </div>
+
+   </div>
+</section>
+{% if reviews|length != 0 %}
+<section id="testimonials">
+  <div class="container">
+
+    <header class="section-header">
+      <h3>Reviews</h3>
+    </header>
+
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+
+        <div class="owl-carousel testimonials-carousel wow fadeInUp">
+            {% for review,image in reviews %}
+          <div class="testimonial-item">
+           <img src="{{ image.url }}" class="testimonial-img" style="height: 125px; width: 125px; border-radius: 50%;">
+           <h3 class="text-info" >{{ review.user.first_name }}</h3>
+           <h4>{{ review.user.username }}</h4>
+           <p>
+              {{ review.review }}
+           </p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endif %}
+
+{% endblock content %}
+
+				<--------templates---------->
+		----------login.html--------------
+{% load static %}
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mansalva&family=Caveat&family=La+Belle+Aurore&family=Sarina&amily=Chewy&family=Nanum+Pen+Script&family=Oooh+Baby&family=Sacramento&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="icon" href="{% static 'img/icons8-login-50.png' %}">
+    <title>Login</title>
+
+    <style media="screen">
+      @media only screen and (max-width: 600px) {
+    body {
+      height: 100vh;
+    }
+   }
+    </style>
+  </head>
+  <body style="">
+     <div class="d-flex align-items-center justify-content-center h-100 w-100">
+        <div class="wrapper fadeInDown">
+        <div id="formContent">
+          <!-- Tabs Titles -->
+
+          <!-- Icon -->
+          <div class="fadeIn first">
+            <img src="{{ image.image.url }}" class="" id="icon" alt="User Icon" />
+          </div>
+
+          <!-- Login Form -->
+          <form id="login-form" method="POST" action="">
+            {% csrf_token %}
+            <input type="text" id="username" class="fadeIn second" name="username" placeholder="Enter Username">
+            <small id="usrnme"></small>
+            <input type="text" id="password" class="fadeIn third" name="password" placeholder="Enter Password">
+            <button type="submit" class="fadeIn fourth btn btn-info mx-auto btn-lg btn-block my-4 w-50" value="Log In">Login</button>
+            <small id="pswd"></small>
+          </form>
+
+          <!-- Remind Passowrd -->
+          <div id="formFooter">
+            <a class="underlineHover" href="{% url 'forgot_password' %}"><p class="my-0">Forgot Password?</p></a><br><br>
+            <h5 class='font-weight-bold' style="font-size: 1.6em;">Not Registered?</h5>
+            <a class='underlineHover' href="{% url 'register' %}"><p class="my-0">Sign Up!</p></a>
+          </div>
+
+        </div>
+      </div>
+     </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+    <script type="text/javascript">
+      $('#login-form').submit(function(event){
+         event.preventDefault();
+
+         var all_visited = [];
+
+         var username = $('#username').val();
+         var password = $('#password').val();
+
+
+         if(username.length == 0){
+            $('#usrnme').text('Please enter username');
+         }
+
+         else if(password.length == 0){
+            $('#pswd').text("Please enter password");
+         }
+
+         else {
+            $.ajax({
+               type: 'POST',
+               url: "{% url 'login' %}",
+               data: {
+                  username: $('#username').val(),
+                  password: $('#password').val(),
+                  csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+               },
+
+               success: function(response) {
+                  if(response == 'False'){
+
+                     var $error = $(
+                     `<div class="alert mx-auto text-center mt-5 col-10 py-0 alert-danger text-left alert-dismissible fade show" role="alert">
+                       <p><strong style="color: black;">Invalid login credentials!</strong></p>
+                          <button type="button" class="close" data-dismiss="alert" aria-p="Close">
+                           <span aria-hidden="true">&times;</span>
+                          </button>
+                     </div>`
+                     );
+
+                     $("#formContent").prepend($error);
+                  }
+
+                  else if(response == 'True') {
+                     window.location.replace("{% url 'home' %}")
+                  }
+               },
+
+               error: function(error){
+                  alert('an error occured while logging in: ', error);
+               },
+            });
+         }
+      });
+
+    </script>
+  </body>
+</html>
+
+
+
+
+
+<!------ Include the above in your HEAD tag ---------->
+
+				<--------templates---------->
+		----------manage_order.html--------------
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+   <meta charset="utf-8">
+   <title>Manage Order</title>
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+   <link rel="icon" href="{% static 'img/icons-8-order-64.png' %}">
+   <style media="screen">
+      .overflow-auto {
+         height: 500px;
+         margin: 0 auto;
+      }
+
+      .table td {
+         padding: 3px;
+      }
+
+      table {
+         table-layout: fixed;
+      }
+
+      th,td {
+         word-wrap: break-word;
+      }
+
+      p {
+         padding: 0;
+         margin: 0;
+      }
+
+   </style>
+
+</head>
+
+<body>
+
+   <div class="container-lg mx-3 my-5">
+      <div class="row">
+         <div class="col-lg-12">
+            <div class="text-center">
+               {% if order_type == 'ordered' %}
+               <h2>Pending</h2>
+               {% else %}
+               <h2>{{ order_type }}</h2>
+               {% endif %}
+            </div>
+         </div>
+      </div>
+
+      <div id='manage-order' class="overflow-auto">
+         <div class="row mx-auto">
+            {% for order in order_data reversed %}
+            {% if order.cart.cartitem_set.all|length > 0 %}
+               <div class="card col-lg-2 col-md-4 col-sm-6 p-1 my-1 {{ border }}">
+                  <div class="card-header text-center px-1 py-0">
+                     <p>Date: {{ order.order_date }}</p>
+                     <p>Time: {{ order.delivery_time }} minutes</p>
+                     <p>Ordered By: {{ order.user.username }}</p>
+                  </div>
+                  <div class="card-title text-center py-0 px-1">
+                     <p>Order No. {{ order.id }}</p>
+                     <p>Amount: ₹{{ order.total_price }}</p>
+                     <p>OTP: {{ order.otp }}</p>
+                  </div>
+                  <div class="card-text py-0">
+                     <table class="table table-bordered table-sm mx-0 text-center">
+                        <tbody>
+                           {% for item in order.cart.cartitem_set.all %}
+                              {% if forloop.counter0 == 0 %}
+                                 <tr>
+                                 <td>{{ item.item.name }}:   {{ item.quantity }}</td>
+                              {% elif not forloop.counter0|divisibleby:'2' %}
+                                 <td>{{ item.item.name }}:  {{ item.quantity }}</td>
+                              {% endif %}
+
+                              {% if forloop.counter0|add:'1'|divisibleby:'2' %}
+                                 </tr>
+                                 <tr>
+                              {% elif forloop.counter0|divisibleby:'2' and forloop.counter0 != 0 %}
+                                 <td>{{ item.item.name }}:  {{ item.quantity }}</td>
+                              {% endif %}
+                           {% endfor %}
+                        </tbody>
+                     </table>
+                     {% if order_type == 'ordered' %}
+                     <div class="card-footer text-center">
+                        <form id="order-action" method="post">
+                           {% csrf_token %}
+                           <input type="hidden" name="order_id" value="{{ order.id }}">
+                           <input type="hidden" name="page" value="manage">
+                           <button type="submit" name="button" class="btn btn-danger btn-sm" value="cancel">cancel</button>
+                           <button type="submit" name="button" class="btn btn-success btn-sm" value="completed">completed</button>
+                        </form>
+                     </div>
+                     {% endif %}
+                  </div>
+               </div>
+               {% endif %}
+            {% endfor %}
+         </div>
+      </div>
+   </div>
+
+   <div class="text-center mt-5">
+      <a href="{% url 'manage_order' 'ordered' %}"><button type="button" class="btn btn-info btn-md m-4">Pending Orders</button></a>
+      <a href="{% url 'manage_order' 'completed' %}"><button type="button" class="btn btn-info btn-md m-4">Completed Orders</button></a>
+      <a href="{% url 'manage_order' 'canceled' %}"><button type="button" class="btn btn-info btn-md m-4">Canceled Orders</button></a>
+      <a href="{% url 'home' %}"><button type="button" class="btn btn-info btn-md" name="button">Back to Website</button></a>
+   </div>
+
+
+<script type="text/javascript">
+$('button[name=button]').click(function(event){
+   console.log('inside of form');
+   event.preventDefault();
+   $(this).attr('disabled', true);
+   siblings = $(this).siblings();
+
+   $.ajax({
+      type: 'POST',
+      url: "{% url 'action' %}",
+      data: {
+         order_id: $(siblings[1]).val(),
+         action: $(this).val(),
+         csrfmiddlewaretoken: $(siblings[0]).val(),
+      },
+
+      success:function(response){
+         console.log(response);
+         $(this).removeAttr('disabled');
+
+         $('#manage-order').load(document.href + ' #manage-order');
+      },
+
+      error: function(error){
+         alert("Some error occured :" + error);
+      },
+   });
+});
+
+setInterval(function(event){
+   $('#manage-order').load(loaction.href + ' #manage_order');
+}, 180000);
+
+</script>
+</body>
+
+</html>
+
+				<--------templates---------->
+		----------menu.html--------------
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+Menu
+{% endblock title %}
+
+{% block head %}
+<link rel="icon" href="{% static 'img/icons8-restaurant-menu-48.png' %}">
+<style media="screen">
+
+   .caviar-dish-menu {
+      padding-bottom: 200px;
+      position: relative;
+      z-index: 1;
+      overflow-x: hidden;
+   }
+
+   h2 {
+      font-size: 5em;
+      font-weight: 700;
+   }
+
+   .caviar-dish-menu:before {
+      position: absolute;
+      font-size: 150px;
+      right: -10%;
+      margin: 0;
+      line-height: 1;
+      top: 35%;
+      -webkit-transform: rotate(-90deg);
+      transform: rotate(-90deg);
+      color: rgba(0, 0, 0, 0.05);
+      font-weight: 700;
+   }
+
+   .caviar-single-dish {
+      padding: 50px 50px 30px 50px;
+      position: relative;
+      z-index: 1;
+      -webkit-transition-duration: 500ms;
+      transition-duration: 500ms;
+      margin-bottom: 5em;
+      margin-left: 1.7em;
+
+   }
+
+   .caviar-single-dish:hover .dish-info .dish-name {
+      color: rgb(0, , 255, 255);
+   }
+
+   .caviar-single-dish:hover .dish-price {
+      background-color:;
+   }
+
+   .caviar-single-dish:after {
+      position: absolute;
+      width: calc(100% - 80px);
+      height: 100%;
+      background-color: #fff;
+      content: '';
+      top: 0;
+      left: 0;
+      z-index: -1;
+      border-radius: 3px;
+      box-shadow: 0 10px 15px rgba(0,0,0, 0.45);
+      background: url({{ section2.image.url }}) white;
+      background-size: cover;
+   }
+
+   .caviar-dish-menu .row .col-12:first-child .caviar-single-dish:before {
+      position: absolute;
+      height: 100%;
+      width: calc(100% - 50px);
+      content: '';
+      top: -50px;
+      left: -50px;
+      z-index: -1;
+      background-repeat: no-repeat;
+   }
+
+   .dish-info {
+      display: -webkit-box;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-box-align: center;
+      -ms-flex-align: center;
+      align-items: center;
+      -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+      justify-content: space-between;
+      height: 100px;
+      color: ;
+   }
+
+   .dish-info .dish-name {
+      -webkit-box-flex: 0;
+      -ms-flex: 0 0 50%;
+      flex: 0 0 50%;
+      width: 50%;
+      margin-bottom: 0;
+      line-height: 1.5;
+      font-size: 2.2em;
+      -webkit-transition-duration: 500ms;
+      transition-duration: 500ms;
+      text-transform: capitalize;
+      color: black #17a2b8;
+   }
+
+   .dish-price {
+      width: 60px;
+      height: 60px;
+      font-size: 25px;
+      background-color: #17a2b8;
+      border-radius: 50%;
+      display: inline-block;
+      margin-bottom: 0;
+      text-align: center;
+      color: #fff;
+      line-height: 60px;
+      font-weight: 700;
+      -webkit-transition-duration: 500ms;
+      transition-duration: 500ms;
+   }
+
+   .dish-name {
+      font-weight: 700;
+      font-size: 17px;
+      color: black;
+   }
+
+   .dish-image {
+      border-radius: 50%;
+      height: 225px;
+      width: 225px;
+      position: relative;
+      bottom: 25px;
+   }
+   }
+</style>
+{% endblock head %}
+
+{% block content %}
+
+<section id="features">
+   <div class="container mt-5">
+      <div class="row text-center feature-item">
+         <div class="col-lg-6 wow fadeInUp">
+            <img src="{{ section1.image.url }}" class="img-fluid mb-md-5 mt-lg-5" alt="" style="">
+         </div>
+         <div class="col-lg-6 wow fadeInUp pt-5 pt-lg-0">
+            <span>
+               <h2 class='text-center'>{{ section1_text.0 }}</h2>
+            </span>
+            {% for txt in section1_text.1 %}
+            <p>{{ txt }}</p>
+            {% endfor %}
+         </div>
+      </div>
+   </div>
+</section>
+
+
+<section id="team" class="section-bg">
+   <div class="container">
+      <div class="section-header">
+         <h3>{{ section2_text.0 }}</h3>
+         {% for txt in section2_text.1 %}
+         <p>{{ txt }}</p>
+         {% endfor %}
+      </div>
+
+      <div class="row">
+         {% for type in types %}
+         <div class="col-12 col-sm-6 col-md-6 col-lg-4">
+            <div class="caviar-single-dish wow fadeInUp" data-wow-delay="0.5s">
+               <img class="dish-image" src="{{ type.image.url }}" alt="">
+               <div class="dish-info">
+                  <h6 class="dish-name">{{ type.name }}</h6><br>
+                  <a href="{% url 'menu_display' type.name %}">
+                     <p class="dish-price"><i class="ion ion-arrow-right-c large"></i></p>
+                  </a>
+               </div>
+            </div>
+         </div>
+
+         {% endfor %}
+
+      </div>
+
+   </div>
+</section>
+
+<script type="text/javascript">
+   $('#features').ready(function(){
+      console.log('this is menu');
+   });
+
+</script>
+
+
+<!--We also have photos that can be displayed will think about it later-->
+
+{% endblock content %}
+
+				<--------templates---------->
+		----------menu_display.html--------------
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+
+{{ menu_type.name }}
+
+{% endblock title %}
+
+{% block head %}
+
+<link rel="icon" href="{% static 'img/icons8-bread-crumbs-100.png' %}">
+
+<style>
+   #portfolio .portfolio-item .portfolio-wrap .portfolio-info {
+      opacity: 1;
+      transition: 0.2s linear;
+      background: rgba(15, 14, 14, 0.71);
+   }
+
+   .portfolio-wrap:hover {
+      background-color: rgba(15, 14, 14, 0.81) !important;
+   }
+
+   .portfolio-text {
+      position: absolute;
+      bottom: 5%;
+   }
+
+   h2 {
+      font-size: 5em;
+      font-weight: 700;
+      text-transform: capitalize;
+   }
+
+   h4 {
+      font-size: 2.3em;
+      text-transform: capitalize;
+   }
+
+   small {
+      font-size: 1.2em;
+   }
+
+   .btn {
+      border-radius: 50%;
+   }
+
+   .slider {
+      -webkit-appearance: none;
+      width: 60%;
+      height: 5px;
+      border-radius: 5px;
+      background: #d3d3d3;
+      outline: none;
+      opacity: 0.7;
+      -webkit-transition: .2s;
+      transition: opacity .2s;
+   }
+
+   .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #17a2b8 ;
+      cursor: pointer;
+   }
+
+   .slider::-moz-range-thumb {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #17a2b8;
+      cursor: pointer;
+   }
+
+   .menu-info {
+      margin: 0 auto;
+      height: 90%;
+      width: 250px;
+      position: relative;
+      bottom: 20px;
+
+   }
+
+   .menu-card {
+      border: 3px solid;
+      border-radius: 25px;
+      font-size: 1em;
+      height: 450px;
+      width: 300px;
+      margin: 0 15px 0 15px;
+      background: url({{ section2.image.url }}) white;
+      background-size: cover;
+   }
+
+   .menu-image {
+      height: 150px;
+      width: 150px;
+      border-radius: 50%;
+      position: relative;
+      bottom: 90px;
+      left: 50px;
+   }
+
+   .menu-row {
+      margin-bottom: 13%;
+   }
+
+   @media (min-width: 100px) and (max-width: 576px) {
+      .menu-row {
+         margin-bottom: 30%;
+      }
+   }
+
+   @media (min-width: 576px) and (max-width: 800px) {
+      .menu-row {
+         margin-bottom: 20%;
+      }
+   }
+
+   @media (min-width: 801px) and (max-width: 1080px) {
+      .menu-row {
+         margin-bottom: 20%;
+      }
+   }
+</style>
+
+
+{% endblock head %}
+
+
+{% block content %}
+
+
+<section id="features">
+   <div class="container mt-5">
+      <div class="row feature-item text-center">
+         <div class="col-lg-6 wow fadeInUp">
+            <img src="{{ section1.image.url }}" class="img-fluid" alt="" style='max-width: 80%;'>
+         </div>
+         <div class="col-lg-6 wow fadeInUp pt-5 pr-5 pt-lg-0">
+            <span>
+               <h2 class="text-center">{{ menu_type.name }}</h2>
+            </span>
+            {% for txt in section1_text.1 %}
+            <p>{{ txt }}</p>
+            {% endfor %}
+         </div>
+      </div>
+   </div>
+</section>
+
+<div aria-live="polite" aria-atomic="true" style="position: sticky; top:100px; z-index: 1">
+  <!-- Position it -->
+  <div id="toast-box" style="position: absolute; top: 0; right: 1vw;">
+
+    <!-- Then put toasts within -->
+  </div>
+</div>
+
+<section id="menu" class="mt-5 pt-3">
+   <div class="container mt-5">
+      <div class="row">
+         {% for item in menu_items %}
+         <div class="col-sm-12 col-xs-12 col-md-6 col-lg-4 menu-row text-center">
+            <div class="menu-card text-center mx-auto">
+               <div class="menu-image">
+                  <img src="{{ item.image.url }}" alt="" style="height: 190px; width: 190px; border-radius: 50%">
+               </div>
+
+               <div class="menu-info text-center ">
+                  <h4 class="font-weight-bold mb-1">{{ item.name }}</h4>
+                  <small class="pb-3">{{ item.description }} </small>
+                  <p class="font-weight-800 mt-2" style="margin-bottom: 5px;">Price: ₹{{ item.price }}</p>
+                  <div class="slidecontainer py-auto">
+                     <input type="range" min="1" max="10" value="1" oninput="slider_value(this)" class="slider" id="{{ forloop.counter }}0" autocomplete="off">
+                  </div>
+                  <div>
+                     <small>Quantity: <span id='{{ forloop.counter }}0q' name="quantity">1</small>
+                  </div>
+                  <form class="mt-3" method="POST">
+                     {% csrf_token %}
+                     <input type="hidden" id="{{ forloop.counter }}0i" name="quantity" value="1">
+                     <input type="hidden" name="item-id" value="{{ item.id }}">
+                     <input type="hidden" name="" value="{{ item.name }}">
+                     <button type="submit" style="height: 2.7em; width: 2.7em;" class="btn btn-lg btn-info border-circle" name="button"><i class="ion ion-plus pt-2"></i></button>
+                  </form>
+               </div>
+
+            </div>
+         </div>
+         {% endfor %}
+
+      </div>
+   </div>
+</section>
+
+<script type="text/javascript">
+
+   function slider_value(slider) {
+      console.log(slider.value, slider.id);
+      var slider_id = slider.id;
+
+      quantity = document.getElementById(slider_id + "q");
+      input = document.getElementById(slider_id + "i");
+
+      quantity.innerHTML = slider.value;
+      input.value = slider.value;
+   }
+
+   $('.mt-3').submit(function(event){
+      event.preventDefault();
+      console.log('form clicked');
+
+      children = $(this).children();
+
+      var itm_id =  $(children[2]).val();
+      var qty = $(children[1]).val();
+      var item_name = $(children[3]).val();
+
+      console.log(itm_id, qty)
+
+      $(children[4]).attr('disabled', true);
+
+      $.ajax({
+         type: 'POST',
+         url: "{% url 'add_item' %}",
+         data: {
+            item_id: itm_id,
+            quantity: qty,
+            csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+         },
+
+         success: function(response) {
+            $(children[4]).removeAttr('disabled');
+
+            if(response == 'False'){
+               window.location.replace("{% url 'register' %}");
+            }
+
+            else {
+               item_count = parseInt($('#cart-counter').html());
+               cart_count(item_count + 1);
+
+               var $notification = $(
+               `
+               <div class="toast bg-info" role="alert" data-autohide="true" aria-live="assertive" aria-atomic="true" data-delay='2500'>
+                 <div class="toast-header" style="color: black;">
+                   <img src="{% static 'img/cooking.png' %}" class="mr-2 img-fluid" alt="..." style="height: 40px; width: 40px;">
+                   <p class="mr-auto text-capitalize font-weight-bold my-0" style="font-size: 1.7em;">` + item_name +`</p>
+                   <small class="text-muted ml-4 mr-1 mt-4">Quantity: ` + qty + `</small>
+                   <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                     <span aria-hidden="true">&times;</span>
+                   </button>
+                 </div>
+                 <div class="toast-body">
+                   <p class="my-0">Item has been added to your cart.</p>
+                 </div>
+               </div>
+               `
+               );
+
+               $('#toast-box').append($notification);
+               $($notification).toast('show');
+            }
+         },
+
+         error: function(error) {
+            alert('An error occured while adding item: ' + error);
+         },
+      });
+   });
+</script>
+
+
+
+{% endblock content %}
+
+				<--------templates---------->
+		----------order.html--------------
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+
+<link rel="stylesheet" href="{% static 'css/order.css' %}">
+<link rel="icon" href="{% static 'img/icons8-order-food-60.png' %}">
+<style media="screen">
+   .cancel {
+      border-radius: 50%;
+      height: 2.5em;
+      width: 2.5em;
+   }
+
+   .clearfix {
+      margin-top: 7em;
+      margin-bottom: 7em;
+   }
+
+   .img-fluid {
+      height: 100%;
+      width: 100%;
+      padding-bottom: 3em;
+   }
+
+   #features {
+      padding-bottom: 0;
+   }
+
+   .container {
+      font-size: 0.9em;
+   }
+
+   .scroll {
+      position: relative;
+      overflow: auto;
+      height: 400px;
+      scrollbar-width: 5px;
+   }
+
+   .scrollbar-pink::-webkit-scrollbar-track {
+      -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
+      background-color: #F5F5F5;
+      border-radius: 10px;
+   }
+
+   .scrollbar-pink::-webkit-scrollbar {
+      width: 4px;
+      background-color: #F5F5F5;
+   }
+
+   .scrollbar-pink::-webkit-scrollbar-thumb {
+      border-radius: 10px;
+      -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
+      background-color: #17a2b8;
+   }
+
+   .scrollbar-pink {
+      scrollbar-color: #17a2b8  #F5F5F5;
+   }
+
+   .thin::-webkit-scrollbar {
+      width: 6px;
+   }
+
+   h4 {
+      font-size: 3em;
+   }
+
+   h5{
+      font-size: 1.5em;
+      font-weight: 500;
+   }
+
+   h2 {
+      font-size: 5em;
+      color: #413e66;
+      font-weight: 700;
+   }
+</style>
+
+{% endblock head %}
+
+{% block content %}
+
+{% if cart_items|length == 0 %}
+
+<section id="features">
+   <div class="container">
+
+      <div class="row feature-item mt-5 text-center">
+         <div class="col-lg-6 wow text-center fadeInUp order-1 order-lg-2">
+            <img src="{{ image.image.url }}" class="img-fluid pb-md-5" alt="">
+         </div>
+         <div class="col-lg-6 wow fadeInUp pt-4 pt-lg-0 order-2 order-lg-1">
+            <h2 class="text-info">{{ section1.0 }}</h2>
+            {% for txt in section1.1 %}
+            <p>{{ txt }}</p>
+            {% endfor %}
+
+            <a href="{% url 'menu' %}"><button class="btn btn-info btn-lg py-2 px-4 mt-5" type="button" name="button"> Visit Menu</button></a>
+         </div>
+
+      </div>
+   </div>
+</section>
+
+
+<!--Above is the code on what to display if the cart is empty-->
+
+{% else %}
+
+
+<section class="clearfix" id="cart">
+   <div class="container">
+      <div class="card" style="height: auto;">
+         <div class="row">
+            <div class="col-md-8 col-sm-12 cart">
+               <div class="title pt-2">
+                  <div class="row mb-3">
+                     <div class="col">
+                        <h4 class="text-info" style="font-weight: 700; font-size: 2.3em;">Your Order</h4>
+                     </div>
+                     <div class="col align-self-center text-right text-muted">{{ cart_items|length }} items</div>
+                  </div>
+
+               </div>
+               <div id="cart-item" class="scroll scrollbar-pink" style="height: 300px;">
+                  {% for item in cart_items %}
+                  <div class="row text-center">
+                     <div class="row main pl-md-0 align-items-center">
+                        <div class="col-2 d-none d-sm-block"><img class="" src="{{ item.item.image.url }}"></div>
+                        <div class="col">
+                           <div class="row text-muted">{{ item.item.name }}</div>
+                           <div class="row">₹{{ item.item.price }}</div>
+                        </div>
+                        <div class="col">{{ item.quantity }}</div>
+                        <div class="col">₹{{ item.total_price }}
+                        </div>
+                        <div class="col text-center pl-4">
+                           <button id='remove-item' value="{{ item.id }}" type="submit" class="btn btn-info btn-md my-auto cancel " name="button"><i class="ion ion-close pt-1"></i></button>
+                        </div>
+                     </div>
+                  </div>
+                  {% endfor %}
+               </div>
+               <div class="back-to-shop"><a href="{% url 'menu' %}"><i class="ion-chevron-left mr-3"></i><span class="font-weight-200">Back to Menu</span></a></div>
+            </div>
+            <div class="col-md-4 summary pl-5">
+               <div>
+                  <h5><b style="font-size: 2rem;">Summary</b></h5>
+               </div>
+               <hr>
+               <div class="row">
+                  <div class="col" style="padding-left:0;">Items Total</div>
+                  <div class="col text-right">₹{{ total_price }}</div>
+               </div>
+               <div class="row">
+                  <div class="col" style="padding-left:0;">GST</div>
+                  <div class="col text-right mb-3">₹{{ gst }}</div>
+               </div>
+
+               <form>
+                  <p class="mb-3">Serving Time</p>
+                  <select id='delivery-time' class="mb-4">
+                     <option class="text-muted" value="15">In 15 mins</option>
+                     <option class="text-muted" value="30">In 30 mins</option>
+                     <option class="text-muted" value="60">In 1 hour</option>
+                  </select>
+               </form>
+               <div class="row" style="border-top: 1px solid rgba(0,0,0,.1); padding: 2vh 0;">
+                  <div class="col px-0">TOTAL</div>
+                  <div id="cart-total" class="col text-right">₹{{ total_price|add:gst }}</div>
+               </div>
+               <div class="text-center">
+                  <a href="{% url 'ordered' %}"><button id="order" class="btnn btn-info mb-2">Order</button></a>
+                  <a href="{% url 'clear' %}"><button id="cancel-order" class="btnn btn-info">Cancel</button></a>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+</section>
+
+{% endif %}
+
+<section id="pricing" class="wow fadeInUp section-bg">
+
+   <div id="pending-orders" class="container mb-5 pt-5">
+      <header class="section-header mb-5">
+         <h3>Upcomming Orders</h3>
+      </header>
+      {% if pending_orders|length >= 1 %}
+      <div class="row flex-items-xs-middle flex-items-xs-center mb-3">
+
+         {% for order in pending_orders %}
+         {% if order.cart.cartitem_set.all|length != 0 %}
+
+         <div class="col-xs-12 col-lg-4 col-md-6 mb-3 p-0">
+            <div class="card scroll scrollbar-pink">
+               <div class="card-header py-0">
+                  <p>Order Number: {{ order.id }}</p>
+               </div>
+               <div class="card-block">
+                  <p class="card-title my-0">
+                     {{ order.order_date }}
+                  </p>
+                  <ul class="list-group mt-3 mb-0">
+                     <table class="table table-borderless mb-2">
+                        <thead>
+                           <tr>
+                              <th scope="col">Item</th>
+                              <th scope="col">Price</th>
+                              <th scope="col">quantity</th>
+                              <th scope="col">Total Price</th>
+                           </tr>
+                        </thead>
+                        <tbody>
+                           {% for item in order.cart.cartitem_set.all %}
+                           <tr>
+                              <td>{{ item.item.name }}</td>
+                              <td>{{ item.item.price }}</td>
+                              <td>{{ item.quantity }}</td>
+                              <td>₹{{ item.total_price }}</td>
+                           </tr>
+                           {% endfor %}
+                        </tbody>
+                     </table>
+                  </ul>
+               </div>
+               <div class="card-header py-0">
+                  <p>Total: ₹{{order.total_price}}</p>
+               </div>
+               <form class="text-center py-0" method="POST">
+                  {% csrf_token %}
+                  <input id="order-id" type="hidden" name="order_id" value="{{ order.id }}">
+                  <button type="submit" value="cancel" class="btn btn-info btn-md" name="button">Cancel</button>
+               </form>
+            </div>
+         </div>
+
+         {% endif %}
+         {% endfor %}
+      </div>
+
+      {% else %}
+      <div class="mx-auto text-center ">
+         <p style="font-weight: 500">No Upcomming Orders, Visit Menu to order items.</p>
+         <a href="{% url 'menu' %}"><button type="button" class="btn btn-lg btn-info mt-4 py-2 px-4" style="margin-bottom: 10%;" name="button">Visit Menu</button></a>
+      </div>
+      {% endif %}
+   </div>
+
+
+   <div class="container mb-5 pt-5" id="canceled-orders">
+      {% if canceled_orders|length != 0 %}
+      <header class="section-header mb-5">
+         <h3>Canceled Orders</h3>
+      </header>
+
+      <div class="row flex-items-xs-middle flex-items-xs-center mb-5">
+
+         {% for order in canceled_orders reversed %}
+
+         <div class="col-xs-12 col-lg-4 col-md-6 mb-3 p-0">
+            <div class="card scroll scrollbar-pink" >
+               <div class="card-header py-0">
+                  <p>Order Number: {{ order.id }}</p>
+               </div>
+               <div class="card-block">
+                  <p class="card-title my-0">
+                     {{ order.order_date }}
+                  </p>
+                  <ul class="list-group mt-3 mb-0">
+                     <table class="table table-borderless mb-0">
+                        <thead>
+                           <tr>
+                              <th scope="col">Item</th>
+                              <th scope="col">Price</th>
+                              <th scope="col">quantity</th>
+                              <th scope="col">Total Price</th>
+                           </tr>
+                        </thead>
+                        <tbody>
+                           {% for item in order.cart.cartitem_set.all %}
+                           <tr>
+                              <td>{{ item.item.name }}</td>
+                              <td>{{ item.item.price }}</td>
+                              <td>{{ item.quantity }}</td>
+                              <td>₹{{ item.total_price }}</td>
+                           </tr>
+                           {% endfor %}
+                        </tbody>
+                     </table>
+                  </ul>
+               </div>
+               <div class="card-header my-0">
+                  <p>Total: ₹{{order.total_price}}</p>
+               </div>
+            </div>
+         </div>
+         {% endfor %}
+
+      </div>
+      {% endif %}
+   </div>
+
+
+   <div class="container" id="completed-orders">
+      {% if completed_orders|length != 0 %}
+      <header class="section-header mb-5">
+         <h3>Completed Orders</h3>
+      </header>
+
+      <div class="row flex-items-xs-middle flex-items-xs-center mb-5">
+
+         {% for order in completed_orders reversed %}
+         <div class="col-xs-12 col-lg-4 col-md-6 mb-3 p-0">
+
+            <div class="card scroll scrollbar-pink">
+
+               <div class="card-header py-0">
+                  <p>Order Number: {{ order.id }}</p>
+               </div>
+               <div class="card-block">
+                  <p class="card-title my-0">
+                     {{ order.order_date }}
+                  </p>
+                  <ul class="list-group mt-3 mb-0">
+                     <table class="table table-borderless mb-0">
+                        <thead>
+                           <tr>
+                              <th scope="col">Item</th>
+                              <th scope="col">Price</th>
+                              <th scope="col">quantity</th>
+                              <th scope="col">Total Price</th>
+                           </tr>
+                        </thead>
+                        <tbody>
+                           {% for item in order.cart.cartitem_set.all %}
+                           <tr>
+                              <td>{{ item.item.name }}</td>
+                              <td>{{ item.item.price }}</td>
+                              <td>{{ item.quantity }}</td>
+                              <td>₹{{ item.total_price }}</td>
+                           </tr>
+                           {% endfor %}
+                        </tbody>
+                     </table>
+                  </ul>
+               </div>
+               <div class="card-header my-0">
+                  <p>Total: ₹{{order.total_price}}</p>
+               </div>
+            </div>
+         </div>
+         {% endfor %}
+      </div>
+      {% endif %}
+   </div>
+</section>
+
+<script type="text/javascript">
+   // for removing items from cart
+   $(document).on('click', '.btn.btn-info.btn-md.my-auto.cancel', function(event) {
+      //event.preventDefault();
+      console.log("Item cancel button");
+      console.log($('#delivery-time option:selected').val());
+
+      $('#remove-item').attr('disabled', true);
+
+      $.ajax({
+         type: "GET",
+         url: "{% url 'remove_item' %}",
+         data: {
+            item_id: $(this).val(),
+         },
+
+         success: function(response) {
+            $('#cart').load(location.href + ' #cart');
+            item_count = parseInt($('#cart-counter').html());
+            cart_count(item_count - 1);
+
+            item_count = $('#cart-counter').html();
+
+
+            if(item_count == 0){
+               location.reload();
+            }
+         },
+
+         error: function(error) {
+            alert("An error occured unable to remove item from cart: " + error);
+         },
+
+      });
+   });
+
+   //for order from cart
+   $('#order').click(function(event){
+      event.preventDefault();
+      $(this).attr('disabled', true);
+
+      $.ajax({
+         type: 'GET',
+         url: "{% url 'ordered' %}",
+         data: {
+            delivery_time: $('#delivery-time option:selected').val(),
+            total_price: parseInt($('#cart-total').text().slice(1,)),
+         },
+
+         success: function(response) {
+            console.log('ordered');
+            cart_count(0);
+            $(this).removeAttr('disabled');
+
+            var newDoc = document.open('text/html', 'replace');
+            newDoc.write(response);
+            newDoc.close();
+         },
+
+         error: function(error) {
+            alert("Error occured while ordering: " + error);
+         },
+      });
+   });
+
+   //for cancel order
+   $('#cancel-order').click(function(event) {
+      event.preventDefault();
+      $(this).attr('disabled', true);
+
+      $.ajax({
+         type: 'GET',
+         url: "{% url 'clear' %}",
+
+         success: function(response) {
+            cart_count(0);
+            console.log('order canceled');
+            $(this).removeAttr('disabled');
+            window.location.reload();
+         },
+
+         error: function(error) {
+            alert('An error occured while canceling: ' + error);
+         },
+      });
+   });
+
+   // for canceling ordered orders
+   $('.text-center.py-0').submit( function(event) {
+      event.preventDefault();
+      childrens = $(this).children();
+      console.log($(childrens[1]).val());
+      $(childrens[2]).attr('disabled', true);
+
+      $.ajax({
+         type: 'POST',
+         url: "{% url 'action' %}",
+         data: {
+            order_id: $(childrens[1]).val(),
+            action: $(childrens[2]).val(),
+            csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+         },
+
+         success: function(response) {
+            console.log('ordered order canceled');
+            $(childrens[2]).removeAttr('disabled');
+
+            $('#pending-orders').load(location.href + ' #pending-orders');
+            $('#canceled-orders').load(location.href + ' #canceled-orders');
+            console.log(response);
+         },
+
+         error: function(error) {
+            alert('An error occured while canceling ordered order: ' + error);
+         },
+      });
+   });
+
+   // for refreshing canceled orders and completed orders after every two minutes
+   $('#canceled-orders', '#completed-orders').ready(function() {
+      var canceled_orders = $('#canceled-orders').html();
+      var completed_orders = $('#completed-orders').html();
+
+      setInterval(function() {
+         var is_cancel_changed = $('#canceled-orders').html();
+         var is_complete_changed = $('#completed-orders').html();
+
+         console.log(canceled_orders != is_cancel_changed);
+         console.log(completed_orders != is_complete_changed);
+
+         if (canceled_orders != is_cancel_changed) {
+            $('#canceled-orders').load(location.href + ' #canceled-orders');
+         }
+
+         if (completed_orders != is_complete_changed) {
+            $('#completed-orders').load(location.href + ' #completed-orders');
+         }
+
+      }, 120000);
+   });
+</script>
+
+
+
+{% endblock content %}
+
+				<--------templates---------->
+		----------register.html--------------
+{% load static %}
+
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Mansalva&family=Caveat&family=La+Belle+Aurore&family=Sarina&amily=Chewy&family=Nanum+Pen+Script&family=Oooh+Baby&family=Sacramento&display=swap" rel="stylesheet">
+
+   <link rel="stylesheet" href="{% static 'css/login.css' %}">
+   <link rel="stylesheet" href="{% static 'css/style.css' %}">
+   <link rel="icon" href="{% static 'img/icons8-add-friend-64.png' %}">
+    <title>Register</title>
+    <style media="screen">
+      small{
+         color: red;
+         font-size: 1.3em;
+      }
+
+      #after. {
+         width: 80vw !important;
+         margin: 0 auto 0 auto;
+      }
+
+    </style>
+  </head>
+  <body style="height: 100vh;">
+
+
+     <div class="wrapper fadeInDown">
+       <div id="formContent">
+          <!-- Tabs Titles -->
+
+          <!-- Icon -->
+          <div class="fadeIn first">
+              <img src="{{ image.image.url }}" class="rounded mb-3" id="icon" alt="User Icon" style="width: 80%; border-radius: 50% !important"/>
+          </div>
+
+          <!-- Login Form -->
+          <form id="registration" method="POST" action="">
+              {% csrf_token %}
+              <input type="text" id="username" class="fadeIn second" name="username" placeholder="Enter Username">
+              <br><small id="usrnme"></small>
+              <input type="text" id="name" class="fadeIn second" name="name" placeholder="Enter Name">
+              <br><small id="nme"></small>
+              <input type="text" id="email" class="fadeIn second" name="email" placeholder="Enter Email">
+              <br><small id='mail'></small>
+              <input type="text" id="password" class="fadeIn third" name="password" placeholder="Enter Password">
+              <br><small class="" id="pswd"></small>
+              <input type="text" id="confirm-password" class="fadeIn third" name="confirm_password" placeholder="Confirm Password">
+              <br><small id='cnf-pswd'></small><br>
+              <button id="submit" class="btn btn-lg btn-info m-3 px-5">Send OTP</button>
+              <button type="submit" id="submit-form" class="btn btn-info btn-lg m-3 px-5" name="button">Register</button>
+          </form>
+       </div>
+     </div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+
+
+<!------ Include the above in your HEAD tag ---------->
+
+<script type="text/javascript">
+
+
+   $(document).ready(function(event){
+      console.log('inside of form');
+      all_visited = [false, false, false, false, false]
+
+
+      $('#registration').keypress(function(event){
+         var keyPressed = event.keyCode || event.which;
+
+         if (keyPressed === 13) {
+            event.preventDefault();
+            return false;
+         }
+
+      });
+
+      $('#submit-form').hide();
+      $('#registration').trigger('reset');
+
+      $('#username').bind('focus blur', function(event) {
+         all_visited[0] = true
+
+         if (event.type == 'focus') {
+            $('#usrnme').text('');
+         }
+
+         else if (event.type == 'blur') {
+            var username = $(this).val();
+            console.log('username: ', username);
+
+            $.ajax({
+               type: 'POST',
+               url: "{% url 'username_available' %}",
+               data: {
+                  username: username,
+                  csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+               },
+
+               success: function(response){
+                  console.log("username check: " + response)
+
+                  if(response == 'False'){
+                     $('#usrnme').text("Username already taken");
+                     $('#submit').hide();
+                  }
+               },
+
+               error: function(error){
+                  alert('Some error while checking username: ' + error);
+               },
+            });
+
+            if (username.length > 15) {
+               $('#usrnme').text('Username too long should, max 15 characters allowed');
+               $('#submit').hide();
+            }
+            else if (username.length == 0) {
+               $('#usrnme').text('Please enter a Username');
+               $('#submit').hide();
+            }
+            else{
+               $('#submit').show();
+            }
+         }
+      });
+
+      $('#name').bind('focus blur', function(event) {
+         all_visited[1] = true;
+
+         if (event.type == 'focus') {
+            $('#nme').text('')
+         }
+
+         else if (event.type == 'blur') {
+            var name = $(this).val();
+            console.log('name: ', name);
+
+            if (name.length > 30) {
+               $('#nme').text('Name too long should, max 30 characters allowed');
+               $('#submit').hide();
+            }
+            else if (name.length == 0) {
+               $('#nme').text('Please enter a Name');
+               $('#submit').hide();
+            }
+            else {
+               var letters = /^[A-Za-z\s]+$/;
+
+               if (letters.test(name) == false) {
+                  $('#nme').text('Only alphabets are allowed');
+                  $('#submit').hide();
+               }
+
+               else{
+                  $('#submit').show();
+               }
+            }
+         }
+      });
+
+      $('#email').bind('focus blur', function(event){
+         all_visited[2] = true;
+
+         if (event.type == 'focus') {
+            $('#mail').text('');
+         }
+
+         else if (event.type == 'blur') {
+            var email = $(this).val();
+
+            if (email.length == 0) {
+               $('#mail').text('Please enter your email address');
+               $('#submit').hide();
+            }
+            else {
+               var email_regex = /[a-z0-9.]{5,}@[a-z]{3,}[.]{1}[a-z]{2,}/;
+
+               if (email_regex.test(email) == false) {
+                  $('#mail').text('Please a valid email address');
+                  $('#submit').hide();
+               }
+               else{
+                  $('#submit').show();
+               }
+            }
+         }
+      });
+
+      $('#password').bind('focus blur', function(event){
+         all_visited[3] = true;
+
+         if (event.type == 'focus') {
+            console.log('password in focus')
+            $('#pswd').removeClass('text-info text-danger text-success');
+            $('#pswd').text('');
+         }
+
+         else if (event.type == 'blur'){
+            var password = $(this).val();
+
+            if (password.length == 0) {
+               $('#pswd').text('Password cannot be empty');
+               $('#submit').hide();
+            }
+
+            else if(password.length < 8){
+               $('#pswd').text('Password too short, enter atleast 8 characters');
+               $('#submit').hide();
+            }
+            else {
+               $('#submit').show();
+
+               console.log('password changing');
+               alphabets = /[a-zA-Z]+/;
+               numbers = /[0-9]+/;
+               specials = /[^a-zA-Z0-9]+/;
+
+               has_alphabets = alphabets.test(password);
+               has_numbers = numbers.test(password);
+               has_specials = specials.test(password);
+
+               console.log(has_alphabets, has_numbers, has_specials);
+
+               if (has_alphabets || has_numbers || has_specials) {
+                  $('#pswd').addClass('text-danger');
+                  $('#pswd').text('Password strength: Weak');
+               }
+
+               if (has_alphabets && has_numbers || has_alphabets && has_specials || has_specials && has_numbers) {
+                  $('#pswd').removeClass('text-danger');
+                  $('#pswd').addClass('text-warning');
+                  $('#pswd').text('Password strength: Good');
+               }
+
+               if (has_alphabets && has_numbers && has_specials) {
+                  $('#pswd').removeClass('text-danger text-warning');
+                  $('#pswd').addClass('text-success');
+                  $('#pswd').text('Password strength: Strong');
+               }
+
+               $('#confirm-password').bind('focus blur', function(event){
+                  all_visited[4] = true;
+
+                  if(event.type == 'focus'){
+                     $('#cnf-pswd').text('');
+                  }
+
+                  else if(event.type == 'blur'){
+                     var confirm_password = $(this).val();
+
+                     if(password != confirm_password){
+                        $('#cnf-pswd').text('Password does not match');
+                        $('#submit').hide();
+                     }
+                     else {
+                        $('#submit').show();
+                     }
+                  }
+               });
+            }
+         }
+      });
+   });
+
+   $('#submit').click(function(event){
+      event.preventDefault();
+      console.log('all_visited', all_visited.toString(), all_visited.length);
+      var true_count = 0
+
+      for(var i=0; i < all_visited.length; i++){
+         if(all_visited[i] == true) {
+            true_count += 1;
+         }
+      }
+
+
+      if(true_count < 5){
+         console.log()
+         var $alert = $(
+         `<div class="alert m-4 alert-danger text-left alert-dismissible fade show" role="alert">
+            <p class="my-0"><strong>Unvisited Fields</strong><br>Please enter data in all fields!</p>
+              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+         </div>`
+         );
+
+         $('.fadeIn.first').after($alert);
+      }
+
+      else{
+         $(this).attr('disabled', true);
+
+         $.ajax({
+            type: 'POST',
+            url: "{% url 'register' %}",
+            data: {
+               email: $('#email').val(),
+               csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+            },
+
+            success: function(response){
+               $(this).removeAttr('disabled');
+
+               console.log(response);
+               if(response == 'False'){
+                  var $otp_message = $('<p>Some error occured while sending OTP</p>');
+                  $('#submit').after($otp_message);
+                  $('#submit').hide();
+
+               }
+
+               else {
+                  var $otp_message = $('<p>An OTP has been sent to ' + $('#email').val() + '</p>');
+
+                  $('#submit').after($otp_message);
+                  $otp_message.after($('<input type="text" id="otp" class="fadeIn second" placeholder="Enter OTP">'));
+                  $('#otp').after($('<br><small id="otp-error"></small><br>'));
+                  $('#submit').hide();
+
+                  $('#submit-form').show();
+
+                  $('#otp_input').focus(function(event){
+                     $('#otp-error').text('');
+                  });
+
+                  $('#submit-form').click(function(event){
+                     event.preventDefault();
+                     entered_otp = $('#otp').val();
+
+                     if(entered_otp.length == 0){
+                        $('#otp-error').text('Please Enter OTP');
+                     }
+
+                     else if(entered_otp != response){
+                        $('#otp-error').text('Entered OTP is invalid');
+                     }
+
+                     else{
+                        $(this).attr('disabled', true);
+
+                        $.ajax({
+                           type: 'POST',
+                           url: "{% url 'register_user' %}",
+                           data: {
+                              username: $('#username').val(),
+                              name: $('#name').val(),
+                              email: $('#email').val(),
+                              password: $('#password').val(),
+                              csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+                           },
+
+                           success: function(response){
+                              var $registration_success = $(
+                              `
+                              <div id="after" class="container h-100 py-5">
+                                 <div class="row text-center d-flex justify content center">
+                                    <div class="col-lg-6 col-md-8 col-sm-12 mx-auto">
+                                       <div class="card"  style="box-shadow: 0 0px 30px 0 rgba(27,177,220, 0.85);">
+                                          <div class="card-body cart">
+                                             <div class="col-sm-12 empty-cart-cls text-center"> <img src="{{ register_image.image.url }}" class="img-fluid mr-3" style="height: 350px !important; width: auto;">
+                                                <h3 style="font-size: 3.2em"><strong>{{ register_text.0 }}</strong></h3>
+                                                {% for text in register_text.1 %}
+                                                   <p style="font-size: 1.6em;">{{ text }}</p>
+                                                {% endfor %}
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                                </div>
+                              `.replace('username', $('#username').val())
+                              );
+
+                              $(this).removeAttr('disabled');
+
+                              $('#formContent').replaceWith($registration_success);
+
+                              setTimeout(function(){
+                                 window.location.replace("{% url 'login' %}")
+                              }, 10000);
+
+                              // response that user has been created Successfully
+                           },
+
+                           error: function(error){
+                              alert("An error occured while creating user: " + error);
+                              // error if the user is not created.
+                           },
+                        });
+                     }
+                  });
+               }
+            },
+
+            error: function(error){
+               alert('Some error occured while sending email');
+            },
+         });
+      }
+   });
+</script>
+</body>
+</html>
+
+				<--------templates---------->
+		----------user_profile.html--------------
+{% extends 'base.html'%}
+{% load static %}
+
+{% block title %}
+
+User Profile
+
+{% endblock title %}
+
+
+{% block head %}
+<link rel="icon" href="{% static 'img/icons8-user-100.png' %}">
+
+<style>
+   .profile-image {
+      broder-radius: 50%;
+      height: 300px;
+      width: 300px;
+      margin-bottom: 20px;
+   }
+
+   .review {
+      padding-top: 7em;
+      margin-bottom: 7%;
+   }
+
+   @media only screen and (max-width: 768px){
+      .profile-image {
+         height: 250px;
+         width: 250px;
+      }
+
+      .card {
+         width: 80vw;
+         margin: 0 auto 0 auto;
+      }
+   }
+
+</style>
+
+{% endblock head %}
+
+{% block content %}
+
+<section class="vh-50" style="margin:5% 0 0 0; ">
+   <div class="container py-5 h-100">
+      <div class="row d-flex justify-content-center align-items-center h-100">
+         <div class="col-md-12 col-lg-8 col-xl-8 mt-5 mt-lg-0">
+
+            <div class="card" style="border-radius: 15px; box-shadow: 0 0px 30px 0px rgba(27,177,220, 0.85);">
+               <div class="card-body text-center">
+                  <div class="mt-3 mb-4">
+                     <img src="{{ profile_photo.url }}" class="rounded-circle profile-image" />
+                  </div>
+                  <h4 style="font-size: 3em; font-weight: 700; text-transform: capitalize;" class="mb-2">{{name}}</h4>
+                  <p class="text-muted mb-5">@{{username}} <span class="mx-2 mb-5">|</span> <a href="#!">{{email}}</a></p>
+
+                  <div class="text-center">
+                     <a href="{% url 'change_info' username %}"><button type="button" class="btn btn-info btn-rounded btn-lg mt-2 mx-auto">
+                           Edit Profile
+                        </button></a>
+
+                        <a href="{% url 'forgot_password' %}"><button type="button" class="btn btn-info btn-rounded btn-lg mt-2 mx-auto">
+                              Change Password
+                           </button></a>
+                     <a href="{% url 'logout' %}"><button type="button" class="btn btn-info btn-rounded btn-lg mt-2 mx-auto">
+                           Logout
+                        </button></a>
+                  </div>
+
+
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+</section>
+
+<footer id="footer" class="section-bg">
+   <div class="footer-top" style="background: none;">
+      <div class="container user-review">
+      <div class="row feature-item">
+         <div class="col-lg-6 col-md-8 wow fadeInUp mx-auto px-auto mb-lg-5 text-center">
+         <img src="{{ image.image.url }}" class="img-fluid" alt="">
+         </div>
+
+         <div class="col-lg-6 wow fadeInUp text-center">
+
+            <div class="form mt-5 pb-3">
+
+               <h3 style="font-size: 4em; font-weight: 700" id="big" class="text-info">{{ section21.0 }}</h3>
+               {% for txt in section21.1 %}
+               <p>{{ txt }}</p>
+               {% endfor %}
+               <form id="" method="post" role="form" class="contactForm">
+                  {% csrf_token %}
+                  <div class="form-group">
+                     <textarea class="form-control" id="review" name="message" rows="5" data-rule="required" data-msg="Please write something for us" placeholder="Message"></textarea>
+                     <div class="validation"></div>
+                  </div>
+                  <div id='submit-review' class="text-center mt-5"><button type="submit" style="font-size: 1.4em" class="btn btn-info btn-lg" title="Send Message">Submit</button></div>
+               </form>
+            </div>
+            </div>
+      </div>
+   </div>
+   <div>
+
+   <div aria-live="polite" aria-atomic="true" style="position: sticky; top:0; z-index: 1">
+        <!-- Position it -->
+      <div id="toast-box" style="position: absolute; bottom: 30px; right: 1%;">
+
+          <!-- Then put toasts within -->
+      </div>
+   </div>
+</footer>
+
+<script type="text/javascript">
+   $(document).ready(function(){
+      $('.contactForm').trigger('reset');
+   });
+
+   $('.contactForm').submit(function(event){
+      event.preventDefault();
+      $('#submit-review').attr('disabled', true);
+
+      $('.contactForm').keypress(function(event){
+         var keyPressed = event.keyCode || event.which;
+         if (keyPressed === 13) {
+            event.preventDefault();
+            return false;
+         }
+      });
+
+      var review_message = $('#review').val();
+
+      if(review_message.length == 0){
+         var $message_error = $(
+         `
+         <div class="toast bg-danger rounded" role="alert" data-autohide="true" aria-live="assertive" aria-atomic="true" data-delay='300000'>
+           <div class="toast-header my-0">
+             <img src="{% static 'img/warning.png' %}" class="rounded mr-2" alt="..." style='height: 40px; width: 40px;'>
+             <h4 class="my-auto pb-0" style="font-size: 1.8em; text-transform: capitalize;"><strong class="mr-auto">Empty review</strong></h4>
+             <small class="text-muted ml-5 mr-2"></small>
+             <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+               <span aria-hidden="true">&times;</span>
+             </button>
+           </div>
+           <div class="toast-body">
+             <p class="my-0">Please enter a review!</p>
+           </div>
+         </div>
+         `
+         );
+
+         $('#toast-box').append($message_error);
+         $message_error.toast('show')
+      }
+
+      else{
+         $.ajax({
+            type: 'POST',
+            url: "{% url 'submit_review' %}",
+            data: {
+               review: review_message,
+               csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+            },
+
+            success: function(response){
+               $('#submit-review').removeAttr('disabled');
+
+               var $review_section = $('.container.user-review').html();
+
+               var $success_message = $(
+               `
+               <div id="message-sent" class="container">
+                  <div class="row">
+                     <div class="col-lg-6 col-sm-12 col-md-12 text-center m-auto">
+                           <h3 style="font-size: 4em; font-weight: 700;" class="mb-4 text-info text-center">{{ section22.0 }}</h3>
+                           {% for txt in section22.1 %}
+                           <p style="font-size: 1.8em;">{{ txt }}</p>
+                           {% endfor %}
+                     </div>
+                     <div class="col-lg-6 col-sm-12 col-md-12 text-center">
+                        <img src="{{ image_section2.image.url }}" alt=""
+                        style="height: 400px; width: 650px;">
+                     </div>
+                  </div>
+               </div>
+               `
+               );
+
+               $('.row.feature-item').replaceWith($success_message);
+
+               setTimeout(function(){
+                  $('#message-sent').replaceWith($review_section);
+               }, 10000);
+            },
+
+            error: function(error){
+               console.log('An error occured while submitting review: ' + error);
+            }
+         });
+      }
+   });
+</script>
+
+{% endblock content %}
+
+				<--------templates---------->
+		----------welcome.html--------------
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+<link rel = "stylesheet" href = "https://maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css">
+<script src = "https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src = "https://maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+<link rel="icon" href="{% static 'img/icons8-happy-100.png' %}">
+<style media="screen">
+   .btn-xl {
+    padding: 10px 20px;
+    font-size: 15px;
+    border-radius: 10px;
+    width:30%;
+    margin-right: 5%;
+    margin-left: 5%;
+}
+
+h2 {
+   font-family: 'Sacramento', cursive !important;
+   font-size: 5em;
+   font-weight: 700;
+   color: #17a2b8;
+   margin-top: 3em;
+}
+
+h6 {
+   font-family: 'Sacramento', cursive !important;
+   font-size: 1.7em;
+   font-weight: 700;
+   color: white;
+}
+</style>
+
+{% endblock head %}
+
+{% block content %}
+
+<section id="features">
+  <div class="container mb-5">
+    <div class="row feature-item mt-5 pt-5">
+      <div class="col-lg-6 wow fadeInUp order-1 order-lg-2">
+        <img src="{{ image.image.url }}" class="img-fluid" alt="">
+      </div>
+      <div class="col-lg-6 wow fadeInUp pt-4 pt-lg-0 order-2 order-lg-1">
+        <h2 class="mt-4">{{ section1.0 }}</h2>
+         {% for txt in section1.1 %}
+         <p>{{ txt }}</p>
+         {% endfor %}
+        <a href="{% url 'order' %}"><button class="btn btn-info btn-lg py-2 px-4 mt-5" type="button" name="button">See Your Order</button></a>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+{% endblock content %}

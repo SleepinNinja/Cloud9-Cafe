@@ -1,0 +1,420 @@
+{% load static %}
+
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Mansalva&family=Caveat&family=La+Belle+Aurore&family=Sarina&amily=Chewy&family=Nanum+Pen+Script&family=Oooh+Baby&family=Sacramento&display=swap" rel="stylesheet">
+
+   <link rel="stylesheet" href="{% static 'css/login.css' %}">
+   <link rel="stylesheet" href="{% static 'css/style.css' %}">
+   <link rel="icon" href="{% static 'img/icons8-add-friend-64.png' %}">
+    <title>Register</title>
+    <style media="screen">
+      small{
+         color: red;
+         font-size: 1.3em;
+      }
+
+      #after. {
+         width: 80vw !important;
+         margin: 0 auto 0 auto;
+      }
+
+    </style>
+  </head>
+  <body style="height: 100vh;">
+
+
+     <div class="wrapper fadeInDown">
+       <div id="formContent">
+          <!-- Tabs Titles -->
+
+          <!-- Icon -->
+          <div class="fadeIn first">
+              <img src="{{ image.image.url }}" class="rounded mb-3" id="icon" alt="User Icon" style="width: 80%; border-radius: 50% !important"/>
+          </div>
+
+          <!-- Login Form -->
+          <form id="registration" method="POST" action="">
+              {% csrf_token %}
+              <input type="text" id="username" class="fadeIn second" name="username" placeholder="Enter Username">
+              <br><small id="usrnme"></small>
+              <input type="text" id="name" class="fadeIn second" name="name" placeholder="Enter Name">
+              <br><small id="nme"></small>
+              <input type="text" id="email" class="fadeIn second" name="email" placeholder="Enter Email">
+              <br><small id='mail'></small>
+              <input type="text" id="password" class="fadeIn third" name="password" placeholder="Enter Password">
+              <br><small class="" id="pswd"></small>
+              <input type="text" id="confirm-password" class="fadeIn third" name="confirm_password" placeholder="Confirm Password">
+              <br><small id='cnf-pswd'></small><br>
+              <button id="submit" class="btn btn-lg btn-info m-3 px-5">Send OTP</button>
+              <button type="submit" id="submit-form" class="btn btn-info btn-lg m-3 px-5" name="button">Register</button>
+          </form>
+       </div>
+     </div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+
+
+<!------ Include the above in your HEAD tag ---------->
+
+<script type="text/javascript">
+
+
+   $(document).ready(function(event){
+      console.log('inside of form');
+      all_visited = [false, false, false, false, false]
+
+
+      $('#registration').keypress(function(event){
+         var keyPressed = event.keyCode || event.which;
+
+         if (keyPressed === 13) {
+            event.preventDefault();
+            return false;
+         }
+
+      });
+
+      $('#submit-form').hide();
+      $('#registration').trigger('reset');
+
+      $('#username').bind('focus blur', function(event) {
+         all_visited[0] = true
+
+         if (event.type == 'focus') {
+            $('#usrnme').text('');
+         }
+
+         else if (event.type == 'blur') {
+            var username = $(this).val();
+            console.log('username: ', username);
+
+            $.ajax({
+               type: 'POST',
+               url: "{% url 'username_available' %}",
+               data: {
+                  username: username,
+                  csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+               },
+
+               success: function(response){
+                  console.log("username check: " + response)
+
+                  if(response == 'False'){
+                     $('#usrnme').text("Username already taken");
+                     $('#submit').hide();
+                  }
+               },
+
+               error: function(error){
+                  alert('Some error while checking username: ' + error);
+               },
+            });
+
+            if (username.length > 15) {
+               $('#usrnme').text('Username too long should, max 15 characters allowed');
+               $('#submit').hide();
+            }
+            else if (username.length == 0) {
+               $('#usrnme').text('Please enter a Username');
+               $('#submit').hide();
+            }
+            else{
+               $('#submit').show();
+            }
+         }
+      });
+
+      $('#name').bind('focus blur', function(event) {
+         all_visited[1] = true;
+
+         if (event.type == 'focus') {
+            $('#nme').text('')
+         }
+
+         else if (event.type == 'blur') {
+            var name = $(this).val();
+            console.log('name: ', name);
+
+            if (name.length > 30) {
+               $('#nme').text('Name too long should, max 30 characters allowed');
+               $('#submit').hide();
+            }
+            else if (name.length == 0) {
+               $('#nme').text('Please enter a Name');
+               $('#submit').hide();
+            }
+            else {
+               var letters = /^[A-Za-z\s]+$/;
+
+               if (letters.test(name) == false) {
+                  $('#nme').text('Only alphabets are allowed');
+                  $('#submit').hide();
+               }
+
+               else{
+                  $('#submit').show();
+               }
+            }
+         }
+      });
+
+      $('#email').bind('focus blur', function(event){
+         all_visited[2] = true;
+
+         if (event.type == 'focus') {
+            $('#mail').text('');
+         }
+
+         else if (event.type == 'blur') {
+            var email = $(this).val();
+
+            if (email.length == 0) {
+               $('#mail').text('Please enter your email address');
+               $('#submit').hide();
+            }
+            else {
+               var email_regex = /[a-z0-9.]{5,}@[a-z]{3,}[.]{1}[a-z]{2,}/;
+
+               if (email_regex.test(email) == false) {
+                  $('#mail').text('Please a valid email address');
+                  $('#submit').hide();
+               }
+               else{
+                  $('#submit').show();
+               }
+            }
+         }
+      });
+
+      $('#password').bind('focus blur', function(event){
+         all_visited[3] = true;
+
+         if (event.type == 'focus') {
+            console.log('password in focus')
+            $('#pswd').removeClass('text-info text-danger text-success');
+            $('#pswd').text('');
+         }
+
+         else if (event.type == 'blur'){
+            var password = $(this).val();
+
+            if (password.length == 0) {
+               $('#pswd').text('Password cannot be empty');
+               $('#submit').hide();
+            }
+
+            else if(password.length < 8){
+               $('#pswd').text('Password too short, enter atleast 8 characters');
+               $('#submit').hide();
+            }
+            else {
+               $('#submit').show();
+
+               console.log('password changing');
+               alphabets = /[a-zA-Z]+/;
+               numbers = /[0-9]+/;
+               specials = /[^a-zA-Z0-9]+/;
+
+               has_alphabets = alphabets.test(password);
+               has_numbers = numbers.test(password);
+               has_specials = specials.test(password);
+
+               console.log(has_alphabets, has_numbers, has_specials);
+
+               if (has_alphabets || has_numbers || has_specials) {
+                  $('#pswd').addClass('text-danger');
+                  $('#pswd').text('Password strength: Weak');
+               }
+
+               if (has_alphabets && has_numbers || has_alphabets && has_specials || has_specials && has_numbers) {
+                  $('#pswd').removeClass('text-danger');
+                  $('#pswd').addClass('text-warning');
+                  $('#pswd').text('Password strength: Good');
+               }
+
+               if (has_alphabets && has_numbers && has_specials) {
+                  $('#pswd').removeClass('text-danger text-warning');
+                  $('#pswd').addClass('text-success');
+                  $('#pswd').text('Password strength: Strong');
+               }
+
+               $('#confirm-password').bind('focus blur', function(event){
+                  all_visited[4] = true;
+
+                  if(event.type == 'focus'){
+                     $('#cnf-pswd').text('');
+                  }
+
+                  else if(event.type == 'blur'){
+                     var confirm_password = $(this).val();
+
+                     if(password != confirm_password){
+                        $('#cnf-pswd').text('Password does not match');
+                        $('#submit').hide();
+                     }
+                     else {
+                        $('#submit').show();
+                     }
+                  }
+               });
+            }
+         }
+      });
+   });
+
+   $('#submit').click(function(event){
+      event.preventDefault();
+      console.log('all_visited', all_visited.toString(), all_visited.length);
+      var true_count = 0
+
+      for(var i=0; i < all_visited.length; i++){
+         if(all_visited[i] == true) {
+            true_count += 1;
+         }
+      }
+
+
+      if(true_count < 5){
+         console.log()
+         var $alert = $(
+         `<div class="alert m-4 alert-danger text-left alert-dismissible fade show" role="alert">
+            <p class="my-0"><strong>Unvisited Fields</strong><br>Please enter data in all fields!</p>
+              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+         </div>`
+         );
+
+         $('.fadeIn.first').after($alert);
+      }
+
+      else{
+         $(this).attr('disabled', true);
+
+         $.ajax({
+            type: 'POST',
+            url: "{% url 'register' %}",
+            data: {
+               email: $('#email').val(),
+               csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+            },
+
+            success: function(response){
+               $(this).removeAttr('disabled');
+
+               console.log(response);
+               if(response == 'False'){
+                  var $otp_message = $('<p>Some error occured while sending OTP</p>');
+                  $('#submit').after($otp_message);
+                  $('#submit').hide();
+
+               }
+
+               else {
+                  var $otp_message = $('<p>An OTP has been sent to ' + $('#email').val() + '</p>');
+
+                  $('#submit').after($otp_message);
+                  $otp_message.after($('<input type="text" id="otp" class="fadeIn second" placeholder="Enter OTP">'));
+                  $('#otp').after($('<br><small id="otp-error"></small><br>'));
+                  $('#submit').hide();
+
+                  $('#submit-form').show();
+
+                  $('#otp_input').focus(function(event){
+                     $('#otp-error').text('');
+                  });
+
+                  $('#submit-form').click(function(event){
+                     event.preventDefault();
+                     entered_otp = $('#otp').val();
+
+                     if(entered_otp.length == 0){
+                        $('#otp-error').text('Please Enter OTP');
+                     }
+
+                     else if(entered_otp != response){
+                        $('#otp-error').text('Entered OTP is invalid');
+                     }
+
+                     else{
+                        $(this).attr('disabled', true);
+
+                        $.ajax({
+                           type: 'POST',
+                           url: "{% url 'register_user' %}",
+                           data: {
+                              username: $('#username').val(),
+                              name: $('#name').val(),
+                              email: $('#email').val(),
+                              password: $('#password').val(),
+                              csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+                           },
+
+                           success: function(response){
+                              var $registration_success = $(
+                              `
+                              <div id="after" class="container h-100 py-5">
+                                 <div class="row text-center d-flex justify content center">
+                                    <div class="col-lg-6 col-md-8 col-sm-12 mx-auto">
+                                       <div class="card"  style="box-shadow: 0 0px 30px 0 rgba(27,177,220, 0.85);">
+                                          <div class="card-body cart">
+                                             <div class="col-sm-12 empty-cart-cls text-center"> <img src="{{ register_image.image.url }}" class="img-fluid mr-3" style="height: 350px !important; width: auto;">
+                                                <h3 style="font-size: 3.2em"><strong>{{ register_text.0 }}</strong></h3>
+                                                {% for text in register_text.1 %}
+                                                   <p style="font-size: 1.6em;">{{ text }}</p>
+                                                {% endfor %}
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                                </div>
+                              `.replace('username', $('#username').val())
+                              );
+
+                              $(this).removeAttr('disabled');
+
+                              $('#formContent').replaceWith($registration_success);
+
+                              setTimeout(function(){
+                                 window.location.replace("{% url 'login' %}")
+                              }, 10000);
+
+                              // response that user has been created Successfully
+                           },
+
+                           error: function(error){
+                              alert("An error occured while creating user: " + error);
+                              // error if the user is not created.
+                           },
+                        });
+                     }
+                  });
+               }
+            },
+
+            error: function(error){
+               alert('Some error occured while sending email');
+            },
+         });
+      }
+   });
+</script>
+</body>
+</html>

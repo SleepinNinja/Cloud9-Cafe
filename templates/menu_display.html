@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+
+{{ menu_type.name }}
+
+{% endblock title %}
+
+{% block head %}
+
+<link rel="icon" href="{% static 'img/icons8-bread-crumbs-100.png' %}">
+
+<style>
+   #portfolio .portfolio-item .portfolio-wrap .portfolio-info {
+      opacity: 1;
+      transition: 0.2s linear;
+      background: rgba(15, 14, 14, 0.71);
+   }
+
+   .portfolio-wrap:hover {
+      background-color: rgba(15, 14, 14, 0.81) !important;
+   }
+
+   .portfolio-text {
+      position: absolute;
+      bottom: 5%;
+   }
+
+   h2 {
+      font-size: 5em;
+      font-weight: 700;
+      text-transform: capitalize;
+   }
+
+   h4 {
+      font-size: 2.3em;
+      text-transform: capitalize;
+   }
+
+   small {
+      font-size: 1.2em;
+   }
+
+   .btn {
+      border-radius: 50%;
+   }
+
+   .slider {
+      -webkit-appearance: none;
+      width: 60%;
+      height: 5px;
+      border-radius: 5px;
+      background: #d3d3d3;
+      outline: none;
+      opacity: 0.7;
+      -webkit-transition: .2s;
+      transition: opacity .2s;
+   }
+
+   .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #17a2b8 ;
+      cursor: pointer;
+   }
+
+   .slider::-moz-range-thumb {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #17a2b8;
+      cursor: pointer;
+   }
+
+   .menu-info {
+      margin: 0 auto;
+      height: 90%;
+      width: 250px;
+      position: relative;
+      bottom: 20px;
+
+   }
+
+   .menu-card {
+      border: 3px solid;
+      border-radius: 25px;
+      font-size: 1em;
+      height: 450px;
+      width: 300px;
+      margin: 0 15px 0 15px;
+      background: url({{ section2.image.url }}) white;
+      background-size: cover;
+   }
+
+   .menu-image {
+      height: 150px;
+      width: 150px;
+      border-radius: 50%;
+      position: relative;
+      bottom: 90px;
+      left: 50px;
+   }
+
+   .menu-row {
+      margin-bottom: 13%;
+   }
+
+   @media (min-width: 100px) and (max-width: 576px) {
+      .menu-row {
+         margin-bottom: 30%;
+      }
+   }
+
+   @media (min-width: 576px) and (max-width: 800px) {
+      .menu-row {
+         margin-bottom: 20%;
+      }
+   }
+
+   @media (min-width: 801px) and (max-width: 1080px) {
+      .menu-row {
+         margin-bottom: 20%;
+      }
+   }
+</style>
+
+
+{% endblock head %}
+
+
+{% block content %}
+
+
+<section id="features">
+   <div class="container mt-5">
+      <div class="row feature-item text-center">
+         <div class="col-lg-6 wow fadeInUp">
+            <img src="{{ section1.image.url }}" class="img-fluid" alt="" style='max-width: 80%;'>
+         </div>
+         <div class="col-lg-6 wow fadeInUp pt-5 pr-5 pt-lg-0">
+            <span>
+               <h2 class="text-center">{{ menu_type.name }}</h2>
+            </span>
+            {% for txt in section1_text.1 %}
+            <p>{{ txt }}</p>
+            {% endfor %}
+         </div>
+      </div>
+   </div>
+</section>
+
+<div aria-live="polite" aria-atomic="true" style="position: sticky; top:100px; z-index: 1">
+  <!-- Position it -->
+  <div id="toast-box" style="position: absolute; top: 0; right: 1vw;">
+
+    <!-- Then put toasts within -->
+  </div>
+</div>
+
+<section id="menu" class="mt-5 pt-3">
+   <div class="container mt-5">
+      <div class="row">
+         {% for item in menu_items %}
+         <div class="col-sm-12 col-xs-12 col-md-6 col-lg-4 menu-row text-center">
+            <div class="menu-card text-center mx-auto">
+               <div class="menu-image">
+                  <img src="{{ item.image.url }}" alt="" style="height: 190px; width: 190px; border-radius: 50%">
+               </div>
+
+               <div class="menu-info text-center ">
+                  <h4 class="font-weight-bold mb-1">{{ item.name }}</h4>
+                  <small class="pb-3">{{ item.description }} </small>
+                  <p class="font-weight-800 mt-2" style="margin-bottom: 5px;">Price: ₹{{ item.price }}</p>
+                  <div class="slidecontainer py-auto">
+                     <input type="range" min="1" max="10" value="1" oninput="slider_value(this)" class="slider" id="{{ forloop.counter }}0" autocomplete="off">
+                  </div>
+                  <div>
+                     <small>Quantity: <span id='{{ forloop.counter }}0q' name="quantity">1</small>
+                  </div>
+                  <form class="mt-3" method="POST">
+                     {% csrf_token %}
+                     <input type="hidden" id="{{ forloop.counter }}0i" name="quantity" value="1">
+                     <input type="hidden" name="item-id" value="{{ item.id }}">
+                     <input type="hidden" name="" value="{{ item.name }}">
+                     <button type="submit" style="height: 2.7em; width: 2.7em;" class="btn btn-lg btn-info border-circle" name="button"><i class="ion ion-plus pt-2"></i></button>
+                  </form>
+               </div>
+
+            </div>
+         </div>
+         {% endfor %}
+
+      </div>
+   </div>
+</section>
+
+<script type="text/javascript">
+
+   function slider_value(slider) {
+      console.log(slider.value, slider.id);
+      var slider_id = slider.id;
+
+      quantity = document.getElementById(slider_id + "q");
+      input = document.getElementById(slider_id + "i");
+
+      quantity.innerHTML = slider.value;
+      input.value = slider.value;
+   }
+
+   $('.mt-3').submit(function(event){
+      event.preventDefault();
+      console.log('form clicked');
+
+      children = $(this).children();
+
+      var itm_id =  $(children[2]).val();
+      var qty = $(children[1]).val();
+      var item_name = $(children[3]).val();
+
+      console.log(itm_id, qty)
+
+      $(children[4]).attr('disabled', true);
+
+      $.ajax({
+         type: 'POST',
+         url: "{% url 'add_item' %}",
+         data: {
+            item_id: itm_id,
+            quantity: qty,
+            csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+         },
+
+         success: function(response) {
+            $(children[4]).removeAttr('disabled');
+
+            if(response == 'False'){
+               window.location.replace("{% url 'register' %}");
+            }
+
+            else {
+               item_count = parseInt($('#cart-counter').html());
+               cart_count(item_count + 1);
+
+               var $notification = $(
+               `
+               <div class="toast bg-info" role="alert" data-autohide="true" aria-live="assertive" aria-atomic="true" data-delay='2500'>
+                 <div class="toast-header" style="color: black;">
+                   <img src="{% static 'img/cooking.png' %}" class="mr-2 img-fluid" alt="..." style="height: 40px; width: 40px;">
+                   <p class="mr-auto text-capitalize font-weight-bold my-0" style="font-size: 1.7em;">` + item_name +`</p>
+                   <small class="text-muted ml-4 mr-1 mt-4">Quantity: ` + qty + `</small>
+                   <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                     <span aria-hidden="true">&times;</span>
+                   </button>
+                 </div>
+                 <div class="toast-body">
+                   <p class="my-0">Item has been added to your cart.</p>
+                 </div>
+               </div>
+               `
+               );
+
+               $('#toast-box').append($notification);
+               $($notification).toast('show');
+            }
+         },
+
+         error: function(error) {
+            alert('An error occured while adding item: ' + error);
+         },
+      });
+   });
+</script>
+
+
+
+{% endblock content %}

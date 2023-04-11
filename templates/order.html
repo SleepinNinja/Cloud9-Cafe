@@ -1,0 +1,507 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+
+<link rel="stylesheet" href="{% static 'css/order.css' %}">
+<link rel="icon" href="{% static 'img/icons8-order-food-60.png' %}">
+<style media="screen">
+   .cancel {
+      border-radius: 50%;
+      height: 2.5em;
+      width: 2.5em;
+   }
+
+   .clearfix {
+      margin-top: 7em;
+      margin-bottom: 7em;
+   }
+
+   .img-fluid {
+      height: 100%;
+      width: 100%;
+      padding-bottom: 3em;
+   }
+
+   #features {
+      padding-bottom: 0;
+   }
+
+   .container {
+      font-size: 0.9em;
+   }
+
+   .scroll {
+      position: relative;
+      overflow: auto;
+      height: 400px;
+      scrollbar-width: 5px;
+   }
+
+   .scrollbar-pink::-webkit-scrollbar-track {
+      -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
+      background-color: #F5F5F5;
+      border-radius: 10px;
+   }
+
+   .scrollbar-pink::-webkit-scrollbar {
+      width: 4px;
+      background-color: #F5F5F5;
+   }
+
+   .scrollbar-pink::-webkit-scrollbar-thumb {
+      border-radius: 10px;
+      -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
+      background-color: #17a2b8;
+   }
+
+   .scrollbar-pink {
+      scrollbar-color: #17a2b8  #F5F5F5;
+   }
+
+   .thin::-webkit-scrollbar {
+      width: 6px;
+   }
+
+   h4 {
+      font-size: 3em;
+   }
+
+   h5{
+      font-size: 1.5em;
+      font-weight: 500;
+   }
+
+   h2 {
+      font-size: 5em;
+      color: #413e66;
+      font-weight: 700;
+   }
+</style>
+
+{% endblock head %}
+
+{% block content %}
+
+{% if cart_items|length == 0 %}
+
+<section id="features">
+   <div class="container">
+
+      <div class="row feature-item mt-5 text-center">
+         <div class="col-lg-6 wow text-center fadeInUp order-1 order-lg-2">
+            <img src="{{ image.image.url }}" class="img-fluid pb-md-5" alt="">
+         </div>
+         <div class="col-lg-6 wow fadeInUp pt-4 pt-lg-0 order-2 order-lg-1">
+            <h2 class="text-info">{{ section1.0 }}</h2>
+            {% for txt in section1.1 %}
+            <p>{{ txt }}</p>
+            {% endfor %}
+
+            <a href="{% url 'menu' %}"><button class="btn btn-info btn-lg py-2 px-4 mt-5" type="button" name="button"> Visit Menu</button></a>
+         </div>
+
+      </div>
+   </div>
+</section>
+
+
+<!--Above is the code on what to display if the cart is empty-->
+
+{% else %}
+
+
+<section class="clearfix" id="cart">
+   <div class="container">
+      <div class="card" style="height: auto;">
+         <div class="row">
+            <div class="col-md-8 col-sm-12 cart">
+               <div class="title pt-2">
+                  <div class="row mb-3">
+                     <div class="col">
+                        <h4 class="text-info" style="font-weight: 700; font-size: 2.3em;">Your Order</h4>
+                     </div>
+                     <div class="col align-self-center text-right text-muted">{{ cart_items|length }} items</div>
+                  </div>
+
+               </div>
+               <div id="cart-item" class="scroll scrollbar-pink" style="height: 300px;">
+                  {% for item in cart_items %}
+                  <div class="row text-center">
+                     <div class="row main pl-md-0 align-items-center">
+                        <div class="col-2 d-none d-sm-block"><img class="" src="{{ item.item.image.url }}"></div>
+                        <div class="col">
+                           <div class="row text-muted">{{ item.item.name }}</div>
+                           <div class="row">₹{{ item.item.price }}</div>
+                        </div>
+                        <div class="col">{{ item.quantity }}</div>
+                        <div class="col">₹{{ item.total_price }}
+                        </div>
+                        <div class="col text-center pl-4">
+                           <button id='remove-item' value="{{ item.id }}" type="submit" class="btn btn-info btn-md my-auto cancel " name="button"><i class="ion ion-close pt-1"></i></button>
+                        </div>
+                     </div>
+                  </div>
+                  {% endfor %}
+               </div>
+               <div class="back-to-shop"><a href="{% url 'menu' %}"><i class="ion-chevron-left mr-3"></i><span class="font-weight-200">Back to Menu</span></a></div>
+            </div>
+            <div class="col-md-4 summary pl-5">
+               <div>
+                  <h5><b style="font-size: 2rem;">Summary</b></h5>
+               </div>
+               <hr>
+               <div class="row">
+                  <div class="col" style="padding-left:0;">Items Total</div>
+                  <div class="col text-right">₹{{ total_price }}</div>
+               </div>
+               <div class="row">
+                  <div class="col" style="padding-left:0;">GST</div>
+                  <div class="col text-right mb-3">₹{{ gst }}</div>
+               </div>
+
+               <form>
+                  <p class="mb-3">Serving Time</p>
+                  <select id='delivery-time' class="mb-4">
+                     <option class="text-muted" value="15">In 15 mins</option>
+                     <option class="text-muted" value="30">In 30 mins</option>
+                     <option class="text-muted" value="60">In 1 hour</option>
+                  </select>
+               </form>
+               <div class="row" style="border-top: 1px solid rgba(0,0,0,.1); padding: 2vh 0;">
+                  <div class="col px-0">TOTAL</div>
+                  <div id="cart-total" class="col text-right">₹{{ total_price|add:gst }}</div>
+               </div>
+               <div class="text-center">
+                  <a href="{% url 'ordered' %}"><button id="order" class="btnn btn-info mb-2">Order</button></a>
+                  <a href="{% url 'clear' %}"><button id="cancel-order" class="btnn btn-info">Cancel</button></a>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+</section>
+
+{% endif %}
+
+<section id="pricing" class="wow fadeInUp section-bg">
+
+   <div id="pending-orders" class="container mb-5 pt-5">
+      <header class="section-header mb-5">
+         <h3>Upcomming Orders</h3>
+      </header>
+      {% if pending_orders|length >= 1 %}
+      <div class="row flex-items-xs-middle flex-items-xs-center mb-3">
+
+         {% for order in pending_orders %}
+         {% if order.cart.cartitem_set.all|length != 0 %}
+
+         <div class="col-xs-12 col-lg-4 col-md-6 mb-3 p-0">
+            <div class="card scroll scrollbar-pink">
+               <div class="card-header py-0">
+                  <p>Order Number: {{ order.id }}</p>
+               </div>
+               <div class="card-block">
+                  <p class="card-title my-0">
+                     {{ order.order_date }}
+                  </p>
+                  <ul class="list-group mt-3 mb-0">
+                     <table class="table table-borderless mb-2">
+                        <thead>
+                           <tr>
+                              <th scope="col">Item</th>
+                              <th scope="col">Price</th>
+                              <th scope="col">quantity</th>
+                              <th scope="col">Total Price</th>
+                           </tr>
+                        </thead>
+                        <tbody>
+                           {% for item in order.cart.cartitem_set.all %}
+                           <tr>
+                              <td>{{ item.item.name }}</td>
+                              <td>{{ item.item.price }}</td>
+                              <td>{{ item.quantity }}</td>
+                              <td>₹{{ item.total_price }}</td>
+                           </tr>
+                           {% endfor %}
+                        </tbody>
+                     </table>
+                  </ul>
+               </div>
+               <div class="card-header py-0">
+                  <p>Total: ₹{{order.total_price}}</p>
+               </div>
+               <form class="text-center py-0" method="POST">
+                  {% csrf_token %}
+                  <input id="order-id" type="hidden" name="order_id" value="{{ order.id }}">
+                  <button type="submit" value="cancel" class="btn btn-info btn-md" name="button">Cancel</button>
+               </form>
+            </div>
+         </div>
+
+         {% endif %}
+         {% endfor %}
+      </div>
+
+      {% else %}
+      <div class="mx-auto text-center ">
+         <p style="font-weight: 500">No Upcomming Orders, Visit Menu to order items.</p>
+         <a href="{% url 'menu' %}"><button type="button" class="btn btn-lg btn-info mt-4 py-2 px-4" style="margin-bottom: 10%;" name="button">Visit Menu</button></a>
+      </div>
+      {% endif %}
+   </div>
+
+
+   <div class="container mb-5 pt-5" id="canceled-orders">
+      {% if canceled_orders|length != 0 %}
+      <header class="section-header mb-5">
+         <h3>Canceled Orders</h3>
+      </header>
+
+      <div class="row flex-items-xs-middle flex-items-xs-center mb-5">
+
+         {% for order in canceled_orders reversed %}
+
+         <div class="col-xs-12 col-lg-4 col-md-6 mb-3 p-0">
+            <div class="card scroll scrollbar-pink" >
+               <div class="card-header py-0">
+                  <p>Order Number: {{ order.id }}</p>
+               </div>
+               <div class="card-block">
+                  <p class="card-title my-0">
+                     {{ order.order_date }}
+                  </p>
+                  <ul class="list-group mt-3 mb-0">
+                     <table class="table table-borderless mb-0">
+                        <thead>
+                           <tr>
+                              <th scope="col">Item</th>
+                              <th scope="col">Price</th>
+                              <th scope="col">quantity</th>
+                              <th scope="col">Total Price</th>
+                           </tr>
+                        </thead>
+                        <tbody>
+                           {% for item in order.cart.cartitem_set.all %}
+                           <tr>
+                              <td>{{ item.item.name }}</td>
+                              <td>{{ item.item.price }}</td>
+                              <td>{{ item.quantity }}</td>
+                              <td>₹{{ item.total_price }}</td>
+                           </tr>
+                           {% endfor %}
+                        </tbody>
+                     </table>
+                  </ul>
+               </div>
+               <div class="card-header my-0">
+                  <p>Total: ₹{{order.total_price}}</p>
+               </div>
+            </div>
+         </div>
+         {% endfor %}
+
+      </div>
+      {% endif %}
+   </div>
+
+
+   <div class="container" id="completed-orders">
+      {% if completed_orders|length != 0 %}
+      <header class="section-header mb-5">
+         <h3>Completed Orders</h3>
+      </header>
+
+      <div class="row flex-items-xs-middle flex-items-xs-center mb-5">
+
+         {% for order in completed_orders reversed %}
+         <div class="col-xs-12 col-lg-4 col-md-6 mb-3 p-0">
+
+            <div class="card scroll scrollbar-pink">
+
+               <div class="card-header py-0">
+                  <p>Order Number: {{ order.id }}</p>
+               </div>
+               <div class="card-block">
+                  <p class="card-title my-0">
+                     {{ order.order_date }}
+                  </p>
+                  <ul class="list-group mt-3 mb-0">
+                     <table class="table table-borderless mb-0">
+                        <thead>
+                           <tr>
+                              <th scope="col">Item</th>
+                              <th scope="col">Price</th>
+                              <th scope="col">quantity</th>
+                              <th scope="col">Total Price</th>
+                           </tr>
+                        </thead>
+                        <tbody>
+                           {% for item in order.cart.cartitem_set.all %}
+                           <tr>
+                              <td>{{ item.item.name }}</td>
+                              <td>{{ item.item.price }}</td>
+                              <td>{{ item.quantity }}</td>
+                              <td>₹{{ item.total_price }}</td>
+                           </tr>
+                           {% endfor %}
+                        </tbody>
+                     </table>
+                  </ul>
+               </div>
+               <div class="card-header my-0">
+                  <p>Total: ₹{{order.total_price}}</p>
+               </div>
+            </div>
+         </div>
+         {% endfor %}
+      </div>
+      {% endif %}
+   </div>
+</section>
+
+<script type="text/javascript">
+   // for removing items from cart
+   $(document).on('click', '.btn.btn-info.btn-md.my-auto.cancel', function(event) {
+      //event.preventDefault();
+      console.log("Item cancel button");
+      console.log($('#delivery-time option:selected').val());
+
+      $('#remove-item').attr('disabled', true);
+
+      $.ajax({
+         type: "GET",
+         url: "{% url 'remove_item' %}",
+         data: {
+            item_id: $(this).val(),
+         },
+
+         success: function(response) {
+            $('#cart').load(location.href + ' #cart');
+            item_count = parseInt($('#cart-counter').html());
+            cart_count(item_count - 1);
+
+            item_count = $('#cart-counter').html();
+
+
+            if(item_count == 0){
+               location.reload();
+            }
+         },
+
+         error: function(error) {
+            alert("An error occured unable to remove item from cart: " + error);
+         },
+
+      });
+   });
+
+   //for order from cart
+   $('#order').click(function(event){
+      event.preventDefault();
+      $(this).attr('disabled', true);
+
+      $.ajax({
+         type: 'GET',
+         url: "{% url 'ordered' %}",
+         data: {
+            delivery_time: $('#delivery-time option:selected').val(),
+            total_price: parseInt($('#cart-total').text().slice(1,)),
+         },
+
+         success: function(response) {
+            console.log('ordered');
+            cart_count(0);
+            $(this).removeAttr('disabled');
+
+            var newDoc = document.open('text/html', 'replace');
+            newDoc.write(response);
+            newDoc.close();
+         },
+
+         error: function(error) {
+            alert("Error occured while ordering: " + error);
+         },
+      });
+   });
+
+   //for cancel order
+   $('#cancel-order').click(function(event) {
+      event.preventDefault();
+      $(this).attr('disabled', true);
+
+      $.ajax({
+         type: 'GET',
+         url: "{% url 'clear' %}",
+
+         success: function(response) {
+            cart_count(0);
+            console.log('order canceled');
+            $(this).removeAttr('disabled');
+            window.location.reload();
+         },
+
+         error: function(error) {
+            alert('An error occured while canceling: ' + error);
+         },
+      });
+   });
+
+   // for canceling ordered orders
+   $('.text-center.py-0').submit( function(event) {
+      event.preventDefault();
+      childrens = $(this).children();
+      console.log($(childrens[1]).val());
+      $(childrens[2]).attr('disabled', true);
+
+      $.ajax({
+         type: 'POST',
+         url: "{% url 'action' %}",
+         data: {
+            order_id: $(childrens[1]).val(),
+            action: $(childrens[2]).val(),
+            csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+         },
+
+         success: function(response) {
+            console.log('ordered order canceled');
+            $(childrens[2]).removeAttr('disabled');
+
+            $('#pending-orders').load(location.href + ' #pending-orders');
+            $('#canceled-orders').load(location.href + ' #canceled-orders');
+            console.log(response);
+         },
+
+         error: function(error) {
+            alert('An error occured while canceling ordered order: ' + error);
+         },
+      });
+   });
+
+   // for refreshing canceled orders and completed orders after every two minutes
+   $('#canceled-orders', '#completed-orders').ready(function() {
+      var canceled_orders = $('#canceled-orders').html();
+      var completed_orders = $('#completed-orders').html();
+
+      setInterval(function() {
+         var is_cancel_changed = $('#canceled-orders').html();
+         var is_complete_changed = $('#completed-orders').html();
+
+         console.log(canceled_orders != is_cancel_changed);
+         console.log(completed_orders != is_complete_changed);
+
+         if (canceled_orders != is_cancel_changed) {
+            $('#canceled-orders').load(location.href + ' #canceled-orders');
+         }
+
+         if (completed_orders != is_complete_changed) {
+            $('#completed-orders').load(location.href + ' #completed-orders');
+         }
+
+      }, 120000);
+   });
+</script>
+
+
+
+{% endblock content %}
